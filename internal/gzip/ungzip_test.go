@@ -213,6 +213,9 @@ func TestUngzip_TargetIsDirectory(t *testing.T) {
 	if string(content) != originalContent {
 		t.Fatalf("自动生成文件内容不匹配")
 	}
+
+	// 清理生成的文件
+	_ = os.Remove(expectedTarget)
 }
 
 func BenchmarkUngzip_SmallFile(b *testing.B) {
