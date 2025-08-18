@@ -31,12 +31,7 @@ func Ungzip(gzipFilePath string, targetPath string, config *config.Config) error
 		return absErr
 	}
 
-	// 检查GZIP文件是否存在
-	if _, err := os.Stat(gzipFilePath); err != nil {
-		return fmt.Errorf("GZIP文件不存在: %w", err)
-	}
-
-	// 打开 GZIP 文件
+	// 打开 GZIP 文件（同时检查文件是否存在）
 	gzipFile, err := os.Open(gzipFilePath)
 	if err != nil {
 		return fmt.Errorf("打开 GZIP 文件失败: %w", err)
@@ -50,23 +45,28 @@ func Ungzip(gzipFilePath string, targetPath string, config *config.Config) error
 	}
 	defer func() { _ = gzipReader.Close() }()
 
-	// 如果目标路径是目录，则使用GZIP文件头中的原始文件名
-	if stat, err := os.Stat(targetPath); err == nil && stat.IsDir() {
-		if gzipReader.Name != "" {
-			targetPath = filepath.Join(targetPath, gzipReader.Name)
-		} else {
-			// 如果GZIP文件头中没有原始文件名，则去掉.gz扩展名
-			baseName := filepath.Base(gzipFilePath)
-			baseName = strings.TrimSuffix(baseName, ".gz")
-			targetPath = filepath.Join(targetPath, baseName)
-		}
-	}
+	// 检查目标路径状态，处理目录情况和覆盖检查
+	if targetStat, err := os.Stat(targetPath); err == nil {
+		if targetStat.IsDir() {
+			// 目标是目录，生成文件名
+			if gzipReader.Name != "" {
+				targetPath = filepath.Join(targetPath, gzipReader.Name)
+			} else {
+				// 如果GZIP文件头中没有原始文件名，则去掉.gz扩展名
+				baseName := filepath.Base(gzipFilePath)
+				baseName = strings.TrimSuffix(baseName, ".gz")
+				targetPath = filepath.Join(targetPath, baseName)
+			}
 
-	// 检查目标文件是否已存在
-	if _, err := os.Stat(targetPath); err == nil {
-		// 文件已存在，检查是否允许覆盖
-		if !config.OverwriteExisting {
-			return fmt.Errorf("目标文件已存在且不允许覆盖: %s", targetPath)
+			// 重新检查生成的目标文件是否存在
+			if _, err := os.Stat(targetPath); err == nil && !config.OverwriteExisting {
+				return fmt.Errorf("目标文件已存在且不允许覆盖: %s", targetPath)
+			}
+		} else {
+			// 目标是文件，检查是否允许覆盖
+			if !config.OverwriteExisting {
+				return fmt.Errorf("目标文件已存在且不允许覆盖: %s", targetPath)
+			}
 		}
 	}
 

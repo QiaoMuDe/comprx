@@ -31,12 +31,7 @@ func Unbz2(bz2FilePath string, targetPath string, config *config.Config) error {
 		return absErr
 	}
 
-	// 检查BZIP2文件是否存在
-	if _, err := os.Stat(bz2FilePath); err != nil {
-		return fmt.Errorf("BZIP2文件不存在: %w", err)
-	}
-
-	// 打开 BZIP2 文件
+	// 打开 BZIP2 文件（同时检查文件是否存在）
 	bz2File, err := os.Open(bz2FilePath)
 	if err != nil {
 		return fmt.Errorf("打开 BZIP2 文件失败: %w", err)
@@ -46,18 +41,24 @@ func Unbz2(bz2FilePath string, targetPath string, config *config.Config) error {
 	// 创建 BZIP2 读取器
 	bz2Reader := bzip2.NewReader(bz2File)
 
-	// 如果目标路径是目录，则使用去掉.bz2扩展名的文件名
-	if stat, err := os.Stat(targetPath); err == nil && stat.IsDir() {
-		baseName := filepath.Base(bz2FilePath)
-		baseName = strings.TrimSuffix(baseName, ".bz2")
-		targetPath = filepath.Join(targetPath, baseName)
-	}
+	// 检查目标路径状态，处理目录情况和覆盖检查
+	if targetStat, err := os.Stat(targetPath); err == nil {
+		if targetStat.IsDir() {
+			// 目标是目录，生成文件名
+			baseName := filepath.Base(bz2FilePath)
+			baseName = strings.TrimSuffix(baseName, ".bz2")
+			baseName = strings.TrimSuffix(baseName, ".bzip2")
+			targetPath = filepath.Join(targetPath, baseName)
 
-	// 检查目标文件是否已存在
-	if _, err := os.Stat(targetPath); err == nil {
-		// 文件已存在，检查是否允许覆盖
-		if !config.OverwriteExisting {
-			return fmt.Errorf("目标文件已存在且不允许覆盖: %s", targetPath)
+			// 重新检查生成的目标文件是否存在
+			if _, err := os.Stat(targetPath); err == nil && !config.OverwriteExisting {
+				return fmt.Errorf("目标文件已存在且不允许覆盖: %s", targetPath)
+			}
+		} else {
+			// 目标是文件，检查是否允许覆盖
+			if !config.OverwriteExisting {
+				return fmt.Errorf("目标文件已存在且不允许覆盖: %s", targetPath)
+			}
 		}
 	}
 

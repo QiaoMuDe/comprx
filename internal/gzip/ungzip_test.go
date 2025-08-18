@@ -21,6 +21,10 @@ func TestUngzip_Success(t *testing.T) {
 	if err != nil {
 		t.Fatalf("创建 GZIP 文件失败: %v", err)
 	}
+	defer func() {
+		_ = file.Close()
+		_ = os.Remove(gzipFile)
+	}()
 
 	writer := gzip.NewWriter(file)
 	writer.Name = "test.txt"
@@ -165,16 +169,20 @@ func TestUngzip_EmptyGzipFile(t *testing.T) {
 	}
 }
 
-func TestUngzip_AutoDetectTargetPath(t *testing.T) {
+func TestUngzip_TargetIsDirectory(t *testing.T) {
 	tempDir := t.TempDir()
 
 	// 创建 GZIP 文件
-	originalContent := "auto detect target path test"
+	originalContent := "target is directory test"
 	gzipFile := filepath.Join(tempDir, "test.txt.gz")
 	file, err := os.Create(gzipFile)
 	if err != nil {
 		t.Fatalf("创建 GZIP 文件失败: %v", err)
 	}
+	defer func() {
+		_ = file.Close()
+		_ = os.Remove(gzipFile)
+	}()
 
 	writer := gzip.NewWriter(file)
 	writer.Name = "test.txt"
@@ -182,15 +190,21 @@ func TestUngzip_AutoDetectTargetPath(t *testing.T) {
 	writer.Close()
 	file.Close()
 
-	// 使用空字符串作为目标路径，应该自动检测
+	// 创建目标目录
+	targetDir := filepath.Join(tempDir, "output")
+	if err := os.MkdirAll(targetDir, 0755); err != nil {
+		t.Fatalf("创建目标目录失败: %v", err)
+	}
+
+	// 使用目录作为目标路径，应该自动生成文件名
 	cfg := &config.Config{OverwriteExisting: true}
-	err = Ungzip(gzipFile, "", cfg)
+	err = Ungzip(gzipFile, targetDir, cfg)
 	if err != nil {
-		t.Fatalf("自动检测目标路径失败: %v", err)
+		t.Fatalf("目标为目录时解压失败: %v", err)
 	}
 
 	// 验证自动生成的文件
-	expectedTarget := filepath.Join(tempDir, "test.txt")
+	expectedTarget := filepath.Join(targetDir, "test.txt")
 	content, err := os.ReadFile(expectedTarget)
 	if err != nil {
 		t.Fatalf("读取自动生成的文件失败: %v", err)
