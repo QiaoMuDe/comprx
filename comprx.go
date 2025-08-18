@@ -137,3 +137,5 @@ func (c *Comprx) Unpack(src string, dst string) error {
 // func Unpack(src string, dst string) error {
 // 	return defaultComprx.Unpack(src, dst)
 // }
+
+//func (c *Comprx) List(archivePath string) error
