@@ -205,11 +205,12 @@ func processSpecialFile(zipWriter *zip.Writer, headerName string, mode fs.FileMo
 }
 
 // getCompressionMethod 根据配置返回对应的压缩方法
-func getCompressionMethod(config *config.Config) uint16 {
-	if config.EnableCompression {
-		return zip.Deflate // 启用压缩
+func getCompressionMethod(cfg *config.Config) uint16 {
+	if cfg.CompressionLevel == config.CompressionLevelNone {
+		return zip.Store // 不压缩，只存储
 	}
-	return zip.Store // 不压缩，只存储
+
+	return zip.Deflate // 使用默认的压缩方法
 }
 
 // walkDirectoryForZip 遍历目录并处理文件到ZIP包

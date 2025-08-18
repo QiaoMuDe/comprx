@@ -3,6 +3,7 @@ package comprx
 import (
 	"fmt"
 	"path/filepath"
+	"strings"
 
 	"gitee.com/MM-Q/comprx/config"
 	"gitee.com/MM-Q/comprx/internal/tar"
@@ -25,18 +26,6 @@ func New() *Comprx {
 		config: config.New(),
 	}
 }
-
-// // WithEnableCompression 设置是否启用压缩
-// //
-// // 参数:
-// //   - enable: 是否启用压缩
-// //
-// // 返回:
-// //   - *Comprx: 压缩器实例
-// func (c *Comprx) WithEnableCompression(enable bool) *Comprx {
-// 	c.config.EnableCompression = enable
-// 	return c
-// }
 
 // // WithOverwriteExisting 设置是否覆盖已存在的文件
 // //
@@ -68,6 +57,11 @@ func (c *Comprx) Pack(dst string, src string) error {
 	compressType, err := types.DetectCompressFormat(dst)
 	if err != nil {
 		return fmt.Errorf("检测压缩格式失败: %v", err)
+	}
+
+	// 检查是否为.bz2格式的压缩文件
+	if strings.HasSuffix(dst, ".bz2") || strings.HasSuffix(dst, ".bzip2") {
+		return fmt.Errorf("无法对.bz2和.bzip2后缀的文件进行压缩")
 	}
 
 	// 检查目标文件是否存在
