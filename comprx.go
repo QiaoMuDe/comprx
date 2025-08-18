@@ -119,7 +119,7 @@ func (c *Comprx) Pack(dst string, src string) error {
 		return zip.Zip(dst, src, c.config)
 	case types.CompressTypeTar: // Tar
 		return tar.Tar(dst, src, c.config)
-	case types.CompressTypeTgz: // Tar.gz
+	case types.CompressTypeTgz, types.CompressTypeTarGz: // Tar.gz 或 .tgz
 		return tgz.Tgz(dst, src, c.config)
 	case types.CompressTypeGz: // Gz
 		return gzip.Gzip(dst, src, c.config)

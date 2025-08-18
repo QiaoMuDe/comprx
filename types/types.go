@@ -26,6 +26,8 @@ var supportedCompressTypes = map[CompressType]struct{}{
 	CompressTypeTgz:   {}, // tgz 压缩格式
 	CompressTypeTarGz: {}, // tar.gz 压缩格式
 	CompressTypeGz:    {}, // gz 压缩格式
+	CompressTypeBz2:   {}, // bz2 压缩格式
+	CompressTypeBzip2: {}, // bzip2 压缩格式
 }
 
 // String 压缩格式的字符串表示
