@@ -73,7 +73,7 @@ func TestZip_SingleFile(t *testing.T) {
 	if err != nil {
 		t.Fatalf("打开ZIP文件失败: %v", err)
 	}
-	defer reader.Close()
+	defer func() { _ = reader.Close() }()
 
 	if len(reader.File) != 1 {
 		t.Errorf("ZIP文件中的文件数量 = %d, want 1", len(reader.File))
@@ -112,7 +112,7 @@ func TestZip_Directory(t *testing.T) {
 	if err != nil {
 		t.Fatalf("打开ZIP文件失败: %v", err)
 	}
-	defer reader.Close()
+	defer func() { _ = reader.Close() }()
 
 	// 检查文件数量（包括目录）
 	if len(reader.File) < 5 {
@@ -267,7 +267,7 @@ func TestZip_EmptyDirectory(t *testing.T) {
 	if err != nil {
 		t.Fatalf("打开ZIP文件失败: %v", err)
 	}
-	defer reader.Close()
+	defer func() { _ = reader.Close() }()
 
 	// 空目录应该至少包含目录本身
 	if len(reader.File) == 0 {
@@ -307,7 +307,7 @@ func TestZip_SymbolicLinks(t *testing.T) {
 	if err != nil {
 		t.Fatalf("打开ZIP文件失败: %v", err)
 	}
-	defer reader.Close()
+	defer func() { _ = reader.Close() }()
 
 	if len(reader.File) != 1 {
 		t.Errorf("ZIP文件中的文件数量 = %d, want 1", len(reader.File))

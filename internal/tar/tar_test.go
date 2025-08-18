@@ -233,7 +233,7 @@ func TestTar_SymbolicLinks(t *testing.T) {
 	if err != nil {
 		t.Fatalf("打开TAR文件失败: %v", err)
 	}
-	defer file.Close()
+	defer func() { _ = file.Close() }()
 
 	tarReader := tar.NewReader(file)
 	header, err := tarReader.Next()

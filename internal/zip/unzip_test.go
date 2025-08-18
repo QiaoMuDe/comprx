@@ -17,10 +17,10 @@ func createTestZip(t *testing.T, zipPath string, files map[string]string) {
 	if err != nil {
 		t.Fatalf("创建ZIP文件失败: %v", err)
 	}
-	defer zipFile.Close()
+	defer func() { _ = zipFile.Close() }()
 
 	zipWriter := zip.NewWriter(zipFile)
-	defer zipWriter.Close()
+	defer func() { _ = zipWriter.Close() }()
 
 	for name, content := range files {
 		writer, err := zipWriter.Create(name)
@@ -117,10 +117,10 @@ func TestUnzip_WithDirectories(t *testing.T) {
 	if err != nil {
 		t.Fatalf("创建ZIP文件失败: %v", err)
 	}
-	defer zipFileHandle.Close()
+	defer func() { _ = zipFileHandle.Close() }()
 
 	zipWriter := zip.NewWriter(zipFileHandle)
-	defer zipWriter.Close()
+	defer func() { _ = zipWriter.Close() }()
 
 	// 添加目录
 	dirHeader := &zip.FileHeader{
@@ -140,8 +140,8 @@ func TestUnzip_WithDirectories(t *testing.T) {
 		t.Fatalf("写入文件内容失败: %v", err)
 	}
 
-	zipWriter.Close()
-	zipFileHandle.Close()
+	_ = zipWriter.Close()
+	_ = zipFileHandle.Close()
 
 	cfg := config.New()
 	err = Unzip(zipFile, extractDir, cfg)
@@ -268,10 +268,10 @@ func TestUnzip_SymbolicLinks(t *testing.T) {
 	if err != nil {
 		t.Fatalf("创建ZIP文件失败: %v", err)
 	}
-	defer zipFileHandle.Close()
+	defer func() { _ = zipFileHandle.Close() }()
 
 	zipWriter := zip.NewWriter(zipFileHandle)
-	defer zipWriter.Close()
+	defer func() { _ = zipWriter.Close() }()
 
 	// 添加普通文件
 	fileWriter, err := zipWriter.Create("target.txt")
@@ -295,8 +295,8 @@ func TestUnzip_SymbolicLinks(t *testing.T) {
 		t.Fatalf("写入符号链接目标失败: %v", err)
 	}
 
-	zipWriter.Close()
-	zipFileHandle.Close()
+	_ = zipWriter.Close()
+	_ = zipFileHandle.Close()
 
 	cfg := config.New()
 	err = Unzip(zipFile, extractDir, cfg)
@@ -357,10 +357,10 @@ func createTestZipForBench(b *testing.B, zipPath string, files map[string]string
 	if err != nil {
 		b.Fatalf("创建ZIP文件失败: %v", err)
 	}
-	defer zipFile.Close()
+	defer func() { _ = zipFile.Close() }()
 
 	zipWriter := zip.NewWriter(zipFile)
-	defer zipWriter.Close()
+	defer func() { _ = zipWriter.Close() }()
 
 	for name, content := range files {
 		writer, err := zipWriter.Create(name)

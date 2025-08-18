@@ -98,10 +98,10 @@ func TestListZip_WithDirectories(t *testing.T) {
 	if err != nil {
 		t.Fatalf("创建ZIP文件失败: %v", err)
 	}
-	defer zipFileHandle.Close()
+	defer func() { _ = zipFileHandle.Close() }()
 
 	zipWriter := zip.NewWriter(zipFileHandle)
-	defer zipWriter.Close()
+	defer func() { _ = zipWriter.Close() }()
 
 	// 添加目录
 	dirHeader := &zip.FileHeader{
@@ -121,8 +121,12 @@ func TestListZip_WithDirectories(t *testing.T) {
 		t.Fatalf("写入文件内容失败: %v", err)
 	}
 
-	zipWriter.Close()
-	zipFileHandle.Close()
+	if err := zipWriter.Close(); err != nil {
+		t.Fatalf("关闭 ZIP writer 失败: %v", err)
+	}
+	if err := zipFileHandle.Close(); err != nil {
+		t.Fatalf("关闭 ZIP 文件失败: %v", err)
+	}
 
 	archiveInfo, err := ListZip(zipFile)
 	if err != nil {
@@ -276,11 +280,13 @@ func TestListZip_EmptyZip(t *testing.T) {
 	if err != nil {
 		t.Fatalf("创建ZIP文件失败: %v", err)
 	}
-	defer zipFileHandle.Close()
+	defer func() { _ = zipFileHandle.Close() }()
 
 	zipWriter := zip.NewWriter(zipFileHandle)
-	zipWriter.Close()
-	zipFileHandle.Close()
+	if err := zipWriter.Close(); err != nil {
+		t.Fatalf("关闭 ZIP writer 失败: %v", err)
+	}
+	_ = zipFileHandle.Close()
 
 	archiveInfo, err := ListZip(zipFile)
 	if err != nil {

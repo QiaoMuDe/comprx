@@ -31,8 +31,12 @@ func TestUngzip_Success(t *testing.T) {
 	if _, err := writer.Write([]byte(originalContent)); err != nil {
 		t.Fatalf("写入 GZIP 内容失败: %v", err)
 	}
-	writer.Close()
-	file.Close()
+	if err := writer.Close(); err != nil {
+		t.Fatalf("关闭 GZIP writer 失败: %v", err)
+	}
+	if err := file.Close(); err != nil {
+		t.Fatalf("关闭文件失败: %v", err)
+	}
 
 	// 设置解压目标
 	targetFile := filepath.Join(tempDir, "extracted.txt")
@@ -99,9 +103,15 @@ func TestUngzip_OverwriteExisting(t *testing.T) {
 
 	writer := gzip.NewWriter(file)
 	writer.Name = "test.txt"
-	writer.Write([]byte(originalContent))
-	writer.Close()
-	file.Close()
+	if _, err := writer.Write([]byte(originalContent)); err != nil {
+		t.Fatalf("写入 GZIP 内容失败: %v", err)
+	}
+	if err := writer.Close(); err != nil {
+		t.Fatalf("关闭 GZIP writer 失败: %v", err)
+	}
+	if err := file.Close(); err != nil {
+		t.Fatalf("关闭文件失败: %v", err)
+	}
 
 	// 创建已存在的目标文件
 	targetFile := filepath.Join(tempDir, "target.txt")
@@ -148,8 +158,12 @@ func TestUngzip_EmptyGzipFile(t *testing.T) {
 
 	writer := gzip.NewWriter(file)
 	writer.Name = "empty.txt"
-	writer.Close()
-	file.Close()
+	if err := writer.Close(); err != nil {
+		t.Fatalf("关闭 GZIP writer 失败: %v", err)
+	}
+	if err := file.Close(); err != nil {
+		t.Fatalf("关闭文件失败: %v", err)
+	}
 
 	targetFile := filepath.Join(tempDir, "empty_extracted.txt")
 	cfg := &config.Config{OverwriteExisting: true}
@@ -186,9 +200,15 @@ func TestUngzip_TargetIsDirectory(t *testing.T) {
 
 	writer := gzip.NewWriter(file)
 	writer.Name = "test.txt"
-	writer.Write([]byte(originalContent))
-	writer.Close()
-	file.Close()
+	if _, err := writer.Write([]byte(originalContent)); err != nil {
+		t.Fatalf("写入 GZIP 内容失败: %v", err)
+	}
+	if err := writer.Close(); err != nil {
+		t.Fatalf("关闭 GZIP writer 失败: %v", err)
+	}
+	if err := file.Close(); err != nil {
+		t.Fatalf("关闭文件失败: %v", err)
+	}
 
 	// 创建目标目录
 	targetDir := filepath.Join(tempDir, "output")
@@ -227,9 +247,15 @@ func BenchmarkUngzip_SmallFile(b *testing.B) {
 	file, _ := os.Create(gzipFile)
 	writer := gzip.NewWriter(file)
 	writer.Name = "small.txt"
-	writer.Write([]byte(content))
-	writer.Close()
-	file.Close()
+	if _, err := writer.Write([]byte(content)); err != nil {
+		b.Fatalf("写入 GZIP 内容失败: %v", err)
+	}
+	if err := writer.Close(); err != nil {
+		b.Fatalf("关闭 GZIP writer 失败: %v", err)
+	}
+	if err := file.Close(); err != nil {
+		b.Fatalf("关闭文件失败: %v", err)
+	}
 
 	cfg := &config.Config{OverwriteExisting: true}
 
