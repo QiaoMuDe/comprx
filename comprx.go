@@ -5,6 +5,7 @@ import (
 	"path/filepath"
 
 	"gitee.com/MM-Q/comprx/config"
+	"gitee.com/MM-Q/comprx/internal/tar"
 	"gitee.com/MM-Q/comprx/internal/utils"
 	"gitee.com/MM-Q/comprx/internal/zip"
 	"gitee.com/MM-Q/comprx/types"
@@ -86,6 +87,8 @@ func (c *Comprx) Pack(dst string, src string) error {
 	switch compressType {
 	case types.CompressTypeZip:
 		return zip.Zip(dst, src, c.config)
+	case types.CompressTypeTar:
+		return tar.Tar(dst, src, c.config)
 	default:
 		return fmt.Errorf("不支持的压缩格式: %s", compressType)
 	}
@@ -120,6 +123,8 @@ func (c *Comprx) Unpack(src string, dst string) error {
 	switch compressType {
 	case types.CompressTypeZip:
 		return zip.Unzip(src, dst, c.config)
+	case types.CompressTypeTar:
+		return tar.Untar(src, dst, c.config)
 	default:
 		return fmt.Errorf("不支持的压缩格式: %s", compressType)
 	}

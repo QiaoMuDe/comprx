@@ -51,47 +51,8 @@ func Zip(dst string, src string, config *config.Config) error {
 	// 根据源路径类型处理
 	var zipErr error
 	if srcInfo.IsDir() {
-		// 遍历目录并添加文件到 ZIP 包 (使用 WalkDir 提升性能)
-		zipErr = filepath.WalkDir(src, func(path string, entry fs.DirEntry, err error) error {
-			if err != nil {
-				// 如果不存在则忽略
-				if os.IsNotExist(err) {
-					return nil
-				}
-
-				// 其他错误
-				return fmt.Errorf("遍历路径 '%s' 时出错: %w", path, err)
-			}
-
-			// 获取相对路径，保留顶层目录
-			headerName, err := filepath.Rel(filepath.Dir(src), path)
-			if err != nil {
-				return fmt.Errorf("处理路径 '%s' 时出错 - 获取相对路径失败: %w", path, err)
-			}
-
-			// 替换路径分隔符为正斜杠(ZIP 文件格式要求)
-			headerName = filepath.ToSlash(headerName)
-
-			// 根据文件类型处理
-			switch {
-			case entry.Type().IsRegular(): // 处理普通文件
-				info, err := entry.Info()
-				if err != nil {
-					return fmt.Errorf("处理文件 '%s' 时出错 - 获取文件信息失败: %w", path, err)
-				}
-				return processRegularFile(zipWriter, path, headerName, info, config)
-			case entry.IsDir(): // 处理目录
-				info, err := entry.Info()
-				if err != nil {
-					return fmt.Errorf("处理目录 '%s' 时出错 - 获取目录信息失败: %w", path, err)
-				}
-				return processDirectory(zipWriter, headerName, info)
-			case entry.Type()&fs.ModeSymlink != 0: // 处理符号链接
-				return processSymlink(zipWriter, path, headerName, entry.Type())
-			default: // 处理特殊文件
-				return processSpecialFile(zipWriter, headerName, entry.Type())
-			}
-		})
+		// 遍历目录并添加文件到 ZIP 包
+		zipErr = walkDirectoryForZip(src, zipWriter, config)
 	} else {
 		// 新增的单文件处理逻辑
 		zipErr = processRegularFile(zipWriter, src, filepath.Base(src), srcInfo, config)
@@ -136,6 +97,7 @@ func processRegularFile(zipWriter *zip.Writer, path, headerName string, info os.
 	if err != nil {
 		return fmt.Errorf("处理文件 '%s' 时出错 - 打开文件失败: %w", path, err)
 	}
+	defer func() { _ = file.Close() }()
 
 	// 获取文件大小
 	fileSize := info.Size()
@@ -146,15 +108,8 @@ func processRegularFile(zipWriter *zip.Writer, path, headerName string, info os.
 	defer utils.PutBuffer(buffer)
 
 	// 复制文件内容到ZIP写入器
-	_, err = io.CopyBuffer(fileWriter, file, buffer)
-
-	// 立即关闭文件并检查错误
-	closeErr := file.Close()
-	if err != nil {
+	if _, err := io.CopyBuffer(fileWriter, file, buffer); err != nil {
 		return fmt.Errorf("处理文件 '%s' 时出错 - 写入 ZIP 文件失败: %w", path, err)
-	}
-	if closeErr != nil {
-		return fmt.Errorf("处理文件 '%s' 时出错 - 关闭文件失败: %w", path, closeErr)
 	}
 
 	return nil
@@ -255,4 +210,55 @@ func getCompressionMethod(config *config.Config) uint16 {
 		return zip.Deflate // 启用压缩
 	}
 	return zip.Store // 不压缩，只存储
+}
+
+// walkDirectoryForZip 遍历目录并处理文件到ZIP包
+//
+// 参数:
+//   - src: 源目录路径
+//   - zipWriter: ZIP写入器
+//   - config: 压缩配置
+//
+// 返回值:
+//   - error: 遍历过程中发生的错误
+func walkDirectoryForZip(src string, zipWriter *zip.Writer, config *config.Config) error {
+	return filepath.WalkDir(src, func(path string, entry fs.DirEntry, err error) error {
+		if err != nil {
+			// 如果不存在则忽略
+			if os.IsNotExist(err) {
+				return nil
+			}
+			// 其他错误
+			return fmt.Errorf("遍历路径 '%s' 时出错: %w", path, err)
+		}
+
+		// 获取相对路径，保留顶层目录
+		headerName, err := filepath.Rel(filepath.Dir(src), path)
+		if err != nil {
+			return fmt.Errorf("处理路径 '%s' 时出错 - 获取相对路径失败: %w", path, err)
+		}
+
+		// 替换路径分隔符为正斜杠(ZIP 文件格式要求)
+		headerName = filepath.ToSlash(headerName)
+
+		// 根据文件类型处理
+		switch {
+		case entry.Type().IsRegular(): // 处理普通文件
+			info, err := entry.Info()
+			if err != nil {
+				return fmt.Errorf("处理文件 '%s' 时出错 - 获取文件信息失败: %w", path, err)
+			}
+			return processRegularFile(zipWriter, path, headerName, info, config)
+		case entry.IsDir(): // 处理目录
+			info, err := entry.Info()
+			if err != nil {
+				return fmt.Errorf("处理目录 '%s' 时出错 - 获取目录信息失败: %w", path, err)
+			}
+			return processDirectory(zipWriter, headerName, info)
+		case entry.Type()&fs.ModeSymlink != 0: // 处理符号链接
+			return processSymlink(zipWriter, path, headerName, entry.Type())
+		default: // 处理特殊文件
+			return processSpecialFile(zipWriter, headerName, entry.Type())
+		}
+	})
 }
