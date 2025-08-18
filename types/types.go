@@ -16,6 +16,7 @@ const (
 	CompressTypeTarGz CompressType = ".tar.gz" // tar.gz 压缩格式
 	CompressTypeGz    CompressType = ".gz"     // gz 压缩格式
 	CompressTypeBz2   CompressType = ".bz2"    // bz2 压缩格式
+	CompressTypeBzip2 CompressType = ".bzip2"  // bzip2 压缩格式
 )
 
 // supportedCompressTypes 受支持的压缩格式map, key是压缩格式类型，value是空结构体
