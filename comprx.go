@@ -3,6 +3,7 @@ package comprx
 import (
 	"fmt"
 	"path/filepath"
+	"strings"
 
 	"gitee.com/MM-Q/comprx/config"
 	"gitee.com/MM-Q/comprx/internal/bzip2"
@@ -89,6 +90,11 @@ func (c *Comprx) SetCompressionLevel(level config.CompressionLevel) {
 
 // Pack 压缩文件或目录
 func (c *Comprx) Pack(dst string, src string) error {
+	// 检查参数
+	if src == "" || dst == "" {
+		return fmt.Errorf("源文件路径或目标文件路径不能为空")
+	}
+
 	// 智能检测压缩文件格式
 	compressType, err := types.DetectCompressFormat(dst)
 	if err != nil {
@@ -141,6 +147,11 @@ func (c *Comprx) Pack(dst string, src string) error {
 // 返回:
 //   - error: 错误信息
 func (c *Comprx) Unpack(src string, dst string) error {
+	// 检查源文件路径是否为空
+	if src == "" {
+		return fmt.Errorf("源文件路径不能为空")
+	}
+
 	// 智能检测压缩文件格式
 	compressType, err := types.DetectCompressFormat(src)
 	if err != nil {
@@ -150,6 +161,14 @@ func (c *Comprx) Unpack(src string, dst string) error {
 	// 检查源文件是否存在
 	if !utils.Exists(src) {
 		return fmt.Errorf("源文件 %s 不存在", src)
+	}
+
+	// 当目标目录为空时，自动生成目标目录, 如: /path/to/file.tar.gz -> /path/to/file
+	if dst == "" {
+		baseName := filepath.Base(src)
+		baseName = strings.TrimSuffix(baseName, ".tar.gz")
+		baseName = strings.TrimSuffix(baseName, filepath.Ext(baseName))
+		dst = filepath.Join(filepath.Dir(src), baseName)
 	}
 
 	// 检查目标目录是否存在, 不存在则创建
