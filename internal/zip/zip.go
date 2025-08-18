@@ -8,6 +8,7 @@ import (
 	"os"
 	"path/filepath"
 
+	"gitee.com/MM-Q/comprx/config"
 	"gitee.com/MM-Q/comprx/internal/utils"
 )
 
@@ -16,10 +17,11 @@ import (
 // 参数:
 //   - dst: 生成的ZIP文件路径
 //   - src: 需要压缩的源路径
+//   - config: 压缩配置指针
 //
 // 返回值:
 //   - error: 操作过程中遇到的错误
-func Zip(dst string, src string) error {
+func Zip(dst string, src string, config *config.Config) error {
 	// 确保路径为绝对路径
 	var absErr error
 	if dst, absErr = utils.EnsureAbsPath(dst, "ZIP文件路径"); absErr != nil {
@@ -77,7 +79,7 @@ func Zip(dst string, src string) error {
 				if err != nil {
 					return fmt.Errorf("处理文件 '%s' 时出错 - 获取文件信息失败: %w", path, err)
 				}
-				return processRegularFile(zipWriter, path, headerName, info)
+				return processRegularFile(zipWriter, path, headerName, info, config)
 			case entry.IsDir(): // 处理目录
 				info, err := entry.Info()
 				if err != nil {
@@ -92,7 +94,7 @@ func Zip(dst string, src string) error {
 		})
 	} else {
 		// 新增的单文件处理逻辑
-		zipErr = processRegularFile(zipWriter, src, filepath.Base(src), srcInfo)
+		zipErr = processRegularFile(zipWriter, src, filepath.Base(src), srcInfo, config)
 	}
 
 	// 检查是否有错误发生
@@ -110,17 +112,18 @@ func Zip(dst string, src string) error {
 //   - path: string - 文件路径
 //   - headerName: string - ZIP 文件中的文件名
 //   - info: os.FileInfo - 文件信息
+//   - config: 压缩配置
 //
 // 返回值:
 //   - error - 操作过程中遇到的错误
-func processRegularFile(zipWriter *zip.Writer, path, headerName string, info os.FileInfo) error {
+func processRegularFile(zipWriter *zip.Writer, path, headerName string, info os.FileInfo, config *config.Config) error {
 	// 创建文件头
 	header, err := zip.FileInfoHeader(info)
 	if err != nil {
 		return fmt.Errorf("处理文件 '%s' 时出错 - 创建 ZIP 文件头失败: %w", path, err)
 	}
-	header.Name = headerName    // 设置文件名
-	header.Method = zip.Deflate // 使用 Deflate 压缩算法
+	header.Name = headerName                     // 设置文件名
+	header.Method = getCompressionMethod(config) // 使用配置的压缩方法
 
 	// 创建 ZIP 写入器
 	fileWriter, err := zipWriter.CreateHeader(header)
@@ -244,4 +247,12 @@ func processSpecialFile(zipWriter *zip.Writer, headerName string, mode fs.FileMo
 		return fmt.Errorf("处理特殊文件 '%s' 时出错 - 写入特殊文件失败: %w", headerName, err)
 	}
 	return nil
+}
+
+// getCompressionMethod 根据配置返回对应的压缩方法
+func getCompressionMethod(config *config.Config) uint16 {
+	if config.EnableCompression {
+		return zip.Deflate // 启用压缩
+	}
+	return zip.Store // 不压缩，只存储
 }

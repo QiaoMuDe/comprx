@@ -7,6 +7,7 @@ import (
 	"os"
 	"path/filepath"
 
+	"gitee.com/MM-Q/comprx/config"
 	"gitee.com/MM-Q/comprx/internal/utils"
 )
 
@@ -15,10 +16,11 @@ import (
 // 参数:
 //   - zipFilePath: 要解压缩的 ZIP 文件路径
 //   - targetDir: 解压缩后的目标目录路径
+//   - config: 解压缩配置
 //
 // 返回值:
 //   - error: 解压缩过程中发生的错误
-func Unzip(zipFilePath string, targetDir string) error {
+func Unzip(zipFilePath string, targetDir string, config *config.Config) error {
 	// 确保路径为绝对路径
 	var absErr error
 	if zipFilePath, absErr = utils.EnsureAbsPath(zipFilePath, "ZIP文件路径"); absErr != nil {
@@ -33,7 +35,7 @@ func Unzip(zipFilePath string, targetDir string) error {
 	if err != nil {
 		return fmt.Errorf("打开 ZIP 文件失败: %w", err)
 	}
-	defer zipReader.Close()
+	defer func() { _ = zipReader.Close() }()
 
 	// 检查目标目录是否存在, 如果不存在, 则创建
 	if err := utils.EnsureDir(targetDir); err != nil {
@@ -50,92 +52,129 @@ func Unzip(zipFilePath string, targetDir string) error {
 
 		// 使用 switch 语句处理不同类型的文件
 		switch {
-		// 目录解压
-		case mode.IsDir():
-			if err := utils.EnsureDir(targetPath); err != nil {
-				return fmt.Errorf("处理目录 '%s' 时出错 - 创建目录失败: %w", file.Name, err)
+		case mode.IsDir(): // 处理目录
+			if err := extractDirectory(targetPath, file.Name); err != nil {
+				return err
 			}
-
-		// 软链接解压
-		case mode&os.ModeSymlink != 0:
-			zipFileReader, err := file.Open()
-			if err != nil {
-				return fmt.Errorf("处理软链接 '%s' 时出错 - 打开 ZIP 文件中的软链接失败: %w", file.Name, err)
+		case mode&os.ModeSymlink != 0: // 处理软链接
+			if err := extractSymlink(file, targetPath); err != nil {
+				return err
 			}
-
-			// 使用 io.ReadAll 读取完整的软链接目标路径
-			targetBytes, err := io.ReadAll(zipFileReader)
-			if err != nil {
-				_ = zipFileReader.Close()
-				return fmt.Errorf("处理软链接 '%s' 时出错 - 读取软链接目标失败: %w", file.Name, err)
-			}
-			target := string(targetBytes) // 软链接的目标
-
-			// 检查软链接的父目录是否存在，如果不存在，则创建
-			parentDir := filepath.Dir(targetPath)
-			if err := utils.EnsureDir(parentDir); err != nil {
-				_ = zipFileReader.Close()
-				return fmt.Errorf("处理软链接 '%s' 时出错 - 创建软链接父目录失败: %w", file.Name, err)
-			}
-
-			// 创建软链接
-			if err := os.Symlink(target, targetPath); err != nil {
-				_ = zipFileReader.Close()
-				return fmt.Errorf("处理软链接 '%s' 时出错 - 创建软链接失败: %w", file.Name, err)
-			}
-
-			// 关闭读取器并检查错误
-			if err := zipFileReader.Close(); err != nil {
-				return fmt.Errorf("处理软链接 '%s' 时出错 - 关闭 zip 读取器失败: %w", file.Name, err)
-			}
-
-		// 普通文件解压
-		default:
-			// 检查file的父目录是否存在, 如果不存在, 则创建
-			parentDir := filepath.Dir(targetPath)
-			if err := utils.EnsureDir(parentDir); err != nil {
-				return fmt.Errorf("处理文件 '%s' 时出错 - 创建文件父目录失败: %w", file.Name, err)
-			}
-
-			// 创建文件
-			fileWriter, err := os.OpenFile(targetPath, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, mode.Perm())
-			if err != nil {
-				return fmt.Errorf("处理文件 '%s' 时出错 - 创建文件失败: %w", file.Name, err)
-			}
-
-			// 打开 ZIP 文件中的文件
-			zipFileReader, err := file.Open()
-			if err != nil {
-				return fmt.Errorf("处理文件 '%s' 时出错 - 打开 zip 文件中的文件失败: %w", file.Name, err)
-			}
-
-			// 获取文件的大小
-			fileSize := file.UncompressedSize64
-
-			// 获取对应文件大小的缓冲区
-			bufferSize := utils.GetBufferSize(int64(fileSize))
-
-			// 创建缓冲区
-			buffer := utils.GetBuffer(bufferSize)
-
-			// 将文件内容写入目标文件
-			_, copyErr := io.CopyBuffer(fileWriter, zipFileReader, buffer)
-			// 归还缓冲区
-			utils.PutBuffer(buffer)
-			if copyErr != nil {
-				return fmt.Errorf("处理文件 '%s' 时出错 - 写入文件失败: %w", file.Name, copyErr)
-			}
-
-			// 关闭文件并检查错误
-			if err := fileWriter.Close(); err != nil {
-				return fmt.Errorf("处理文件 '%s' 时出错 - 关闭文件失败: %w", file.Name, err)
-			}
-
-			// 关闭读取器并检查错误
-			if err := zipFileReader.Close(); err != nil {
-				return fmt.Errorf("处理文件 '%s' 时出错 - 关闭 zip 读取器失败: %w", file.Name, err)
+		default: // 处理普通文件
+			if err := extractRegularFile(file, targetPath, mode); err != nil {
+				return err
 			}
 		}
+	}
+
+	return nil
+}
+
+// extractDirectory 处理目录解压
+//
+// 参数:
+//   - targetPath: 目标路径
+//   - fileName: 文件名（用于错误信息）
+//
+// 返回值:
+//   - error: 操作过程中遇到的错误
+func extractDirectory(targetPath, fileName string) error {
+	if err := utils.EnsureDir(targetPath); err != nil {
+		return fmt.Errorf("处理目录 '%s' 时出错 - 创建目录失败: %w", fileName, err)
+	}
+	return nil
+}
+
+// extractSymlink 处理软链接解压
+//
+// 参数:
+//   - file: ZIP文件条目
+//   - targetPath: 目标路径
+//
+// 返回值:
+//   - error: 操作过程中遇到的错误
+func extractSymlink(file *zip.File, targetPath string) error {
+	zipFileReader, err := file.Open()
+	if err != nil {
+		return fmt.Errorf("处理软链接 '%s' 时出错 - 打开 ZIP 文件中的软链接失败: %w", file.Name, err)
+	}
+	defer func() { _ = zipFileReader.Close() }()
+
+	// 使用 io.ReadAll 读取完整的软链接目标路径
+	targetBytes, err := io.ReadAll(zipFileReader)
+	if err != nil {
+		return fmt.Errorf("处理软链接 '%s' 时出错 - 读取软链接目标失败: %w", file.Name, err)
+	}
+	target := string(targetBytes) // 软链接的目标
+
+	// 检查软链接的父目录是否存在，如果不存在，则创建
+	parentDir := filepath.Dir(targetPath)
+	if err := utils.EnsureDir(parentDir); err != nil {
+		return fmt.Errorf("处理软链接 '%s' 时出错 - 创建软链接父目录失败: %w", file.Name, err)
+	}
+
+	// 创建软链接
+	if err := os.Symlink(target, targetPath); err != nil {
+		return fmt.Errorf("处理软链接 '%s' 时出错 - 创建软链接失败: %w", file.Name, err)
+	}
+
+	return nil
+}
+
+// extractRegularFile 处理普通文件解压
+//
+// 参数:
+//   - file: ZIP文件条目
+//   - targetPath: 目标路径
+//   - mode: 文件模式
+//
+// 返回值:
+//   - error: 操作过程中遇到的错误
+func extractRegularFile(file *zip.File, targetPath string, mode os.FileMode) error {
+	// 检查file的父目录是否存在, 如果不存在, 则创建
+	parentDir := filepath.Dir(targetPath)
+	if err := utils.EnsureDir(parentDir); err != nil {
+		return fmt.Errorf("处理文件 '%s' 时出错 - 创建文件父目录失败: %w", file.Name, err)
+	}
+
+	// 获取文件的大小
+	fileSize := file.UncompressedSize64
+
+	// 如果文件大小为0，只创建空文件，不进行读写操作
+	if fileSize == 0 {
+		// 创建空文件
+		emptyFile, err := os.OpenFile(targetPath, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, mode.Perm())
+		if err != nil {
+			return fmt.Errorf("处理文件 '%s' 时出错 - 创建空文件失败: %w", file.Name, err)
+		}
+		defer func() { _ = emptyFile.Close() }()
+		return nil
+	}
+
+	// 创建文件
+	fileWriter, err := os.OpenFile(targetPath, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, mode.Perm())
+	if err != nil {
+		return fmt.Errorf("处理文件 '%s' 时出错 - 创建文件失败: %w", file.Name, err)
+	}
+	defer func() { _ = fileWriter.Close() }()
+
+	// 打开 ZIP 文件中的文件
+	zipFileReader, err := file.Open()
+	if err != nil {
+		return fmt.Errorf("处理文件 '%s' 时出错 - 打开 zip 文件中的文件失败: %w", file.Name, err)
+	}
+	defer func() { _ = zipFileReader.Close() }()
+
+	// 获取对应文件大小的缓冲区
+	bufferSize := utils.GetBufferSize(int64(fileSize))
+
+	// 创建缓冲区
+	buffer := utils.GetBuffer(bufferSize)
+	defer utils.PutBuffer(buffer)
+
+	// 将文件内容写入目标文件
+	if _, err := io.CopyBuffer(fileWriter, zipFileReader, buffer); err != nil {
+		return fmt.Errorf("处理文件 '%s' 时出错 - 写入文件失败: %w", file.Name, err)
 	}
 
 	return nil
