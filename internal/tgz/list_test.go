@@ -113,14 +113,12 @@ func TestListTgz_Directory(t *testing.T) {
 	// 验证特定文件存在
 	foundFiles := make(map[string]bool)
 	for _, file := range archiveInfo.Files {
-		if strings.HasSuffix(file.Name, "file1.txt") {
-			foundFiles["file1.txt"] = true
-		}
-		if strings.HasSuffix(file.Name, "file2.txt") {
-			foundFiles["file2.txt"] = true
-		}
-		if strings.HasSuffix(file.Name, "file3.txt") {
-			foundFiles["file3.txt"] = true
+		// 检查文件名是否匹配任何期望的文件
+		for expectedFile := range files {
+			// 使用 strings.Contains 来匹配文件路径
+			if strings.Contains(file.Name, expectedFile) && !file.IsDir {
+				foundFiles[expectedFile] = true
+			}
 		}
 	}
 

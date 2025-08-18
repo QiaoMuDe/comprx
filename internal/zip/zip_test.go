@@ -2,6 +2,7 @@ package zip
 
 import (
 	"archive/zip"
+	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
@@ -152,8 +153,8 @@ func TestZip_CompressionLevels(t *testing.T) {
 	}
 
 	for _, level := range compressionLevels {
-		t.Run(string(rune(int(level))), func(t *testing.T) {
-			zipFile := filepath.Join(tempDir, "test_"+string(rune(int(level)))+".zip")
+		t.Run(fmt.Sprintf("level_%d", int(level)), func(t *testing.T) {
+			zipFile := filepath.Join(tempDir, fmt.Sprintf("test_%d.zip", int(level)))
 			cfg := &config.Config{
 				CompressionLevel:  level,
 				OverwriteExisting: true,

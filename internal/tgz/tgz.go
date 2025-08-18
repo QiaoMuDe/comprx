@@ -31,6 +31,19 @@ func Tgz(dst string, src string, cfg *config.Config) error {
 		return absErr
 	}
 
+	// 检查目标文件是否已存在
+	if _, err := os.Stat(dst); err == nil {
+		// 文件已存在，检查是否允许覆盖
+		if !cfg.OverwriteExisting {
+			return fmt.Errorf("目标文件已存在且不允许覆盖: %s", dst)
+		}
+	}
+
+	// 确保目标目录存在
+	if err := utils.EnsureDir(filepath.Dir(dst)); err != nil {
+		return fmt.Errorf("创建目标目录失败: %w", err)
+	}
+
 	// 创建 TGZ 文件
 	tgzFile, err := os.Create(dst)
 	if err != nil {

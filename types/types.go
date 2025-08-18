@@ -73,7 +73,7 @@ func SupportedCompressTypes() []string {
 func DetectCompressFormat(filename string) (CompressType, error) {
 	// 转换为小写进行处理
 	lowerFilename := strings.ToLower(filename)
-	
+
 	// 处理.tar.gz特殊情况
 	if strings.HasSuffix(lowerFilename, ".tar.gz") {
 		return CompressTypeTarGz, nil
