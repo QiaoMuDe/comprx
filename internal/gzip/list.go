@@ -1,0 +1,121 @@
+package gzip
+
+import (
+	"compress/gzip"
+	"fmt"
+	"os"
+	"path/filepath"
+
+	"gitee.com/MM-Q/comprx/internal/utils"
+	"gitee.com/MM-Q/comprx/types"
+)
+
+// ListGzip 获取GZIP压缩包的文件信息
+func ListGzip(archivePath string) (*types.ArchiveInfo, error) {
+	// 确保路径为绝对路径
+	absPath, err := utils.EnsureAbsPath(archivePath, "GZIP文件路径")
+	if err != nil {
+		return nil, err
+	}
+
+	// 打开GZIP文件
+	file, err := os.Open(absPath)
+	if err != nil {
+		return nil, fmt.Errorf("打开GZIP文件失败: %w", err)
+	}
+	defer func() { _ = file.Close() }()
+
+	// 获取压缩包文件信息
+	stat, err := file.Stat()
+	if err != nil {
+		return nil, fmt.Errorf("获取GZIP文件信息失败: %w", err)
+	}
+
+	// 创建GZIP读取器
+	gzipReader, err := gzip.NewReader(file)
+	if err != nil {
+		return nil, fmt.Errorf("创建GZIP读取器失败: %w", err)
+	}
+	defer func() { _ = gzipReader.Close() }()
+
+	// 获取原始文件名
+	originalName := gzipReader.Name
+	if originalName == "" {
+		// 如果GZIP头中没有文件名，从压缩包文件名推导
+		baseName := filepath.Base(absPath)
+		if ext := filepath.Ext(baseName); ext == ".gz" {
+			originalName = baseName[:len(baseName)-len(ext)]
+		} else {
+			originalName = baseName + ".decompressed"
+		}
+	}
+
+	// GZIP是单文件压缩，需要读取整个文件来获取原始大小
+	// 为了避免读取大文件，我们使用一个估算方法
+	// 实际应用中可以考虑只读取部分数据或使用其他方法
+	var originalSize int64
+	buffer := make([]byte, 32*1024) // 32KB缓冲区
+	for {
+		n, err := gzipReader.Read(buffer)
+		if err != nil {
+			if err.Error() == "EOF" {
+				break
+			}
+			// 如果读取失败，使用压缩文件大小作为估算
+			originalSize = stat.Size()
+			break
+		}
+		originalSize += int64(n)
+	}
+
+	fileInfo := types.FileInfo{
+		Name:           originalName,
+		Size:           originalSize,
+		CompressedSize: stat.Size(),
+		ModTime:        gzipReader.ModTime,
+		Mode:           0644, // GZIP不保存文件权限，使用默认权限
+		IsDir:          false,
+		IsSymlink:      false,
+	}
+
+	archiveInfo := &types.ArchiveInfo{
+		Type:           types.CompressTypeGz,
+		TotalFiles:     1,
+		TotalSize:      originalSize,
+		CompressedSize: stat.Size(),
+		Files:          []types.FileInfo{fileInfo},
+	}
+
+	return archiveInfo, nil
+}
+
+// ListGzipLimit 获取GZIP压缩包指定数量的文件信息
+func ListGzipLimit(archivePath string, limit int) (*types.ArchiveInfo, error) {
+	archiveInfo, err := ListGzip(archivePath)
+	if err != nil {
+		return nil, err
+	}
+
+	// GZIP只有一个文件，limit不影响结果
+	return archiveInfo, nil
+}
+
+// ListGzipMatch 获取GZIP压缩包中匹配指定模式的文件信息
+func ListGzipMatch(archivePath string, pattern string) (*types.ArchiveInfo, error) {
+	archiveInfo, err := ListGzip(archivePath)
+	if err != nil {
+		return nil, err
+	}
+
+	// 检查单个文件是否匹配模式
+	if len(archiveInfo.Files) > 0 && utils.MatchPattern(archiveInfo.Files[0].Name, pattern) {
+		return archiveInfo, nil
+	}
+
+	// 如果不匹配，返回空列表
+	archiveInfo.Files = []types.FileInfo{}
+	archiveInfo.TotalFiles = 0
+	archiveInfo.TotalSize = 0
+
+	return archiveInfo, nil
+}
