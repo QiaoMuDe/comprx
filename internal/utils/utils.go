@@ -1,0 +1,114 @@
+package utils
+
+import (
+	"fmt"
+	"os"
+	"path/filepath"
+)
+
+// Exists 检查指定路径的文件或目录是否存在
+//
+// 参数：
+//   - path: 要检查的路径
+//
+// 返回值：
+//   - bool: 如果文件或目录存在，则返回true，否则返回false
+func Exists(path string) bool {
+	// 使用os.Stat尝试获取文件信息
+	_, err := os.Stat(path)
+
+	// 如果没有错误，说明文件/目录存在
+	if err == nil {
+		return true
+	}
+
+	// 如果错误是文件不存在，则返回false
+	if os.IsNotExist(err) {
+		return false
+	}
+
+	// 其他错误情况（如权限问题等）也视为不存在
+	// 根据实际需求，也可以选择返回错误
+	return false
+}
+
+// EnsureDir 检查指定路径的目录是否存在，不存在则创建
+//
+// 参数：
+//   - path: 要检查的目录路径
+//
+// 返回值：
+//   - error: 如果创建目录成功，则返回nil，否则返回错误信息
+func EnsureDir(path string) error {
+	// 检查目录是否存在
+	_, err := os.Stat(path)
+	if err == nil {
+		// 目录存在，返回nil
+		return nil
+	}
+
+	// 检查错误是否为目录不存在
+	if os.IsNotExist(err) {
+		// 创建目录，使用0755权限，并递归创建父目录
+		err := os.MkdirAll(path, 0755)
+		if err != nil {
+			return err
+		}
+		return nil
+	}
+
+	// 其他错误（如权限问题等）
+	return err
+}
+
+// GetBufferSize 根据文件大小动态设置缓冲区大小。该函数会根据传入的文件大小，
+// 选择合适的缓冲区大小，以优化文件读写操作的性能。不同的文件大小范围对应不同的缓冲区大小。
+//
+// 参数:
+//   - fileSize: 文件的大小，单位为字节，类型为 int64。
+//
+// 返回值:
+//   - 缓冲区的大小，单位为字节，类型为 int。
+func GetBufferSize(fileSize int64) int {
+	switch {
+	// 当文件大小小于 512KB 时，设置缓冲区大小为 32KB
+	case fileSize < 512*1024:
+		return 32 * 1024
+	// 当文件大小小于 1MB 时，设置缓冲区大小为 64KB
+	case fileSize < 1*1024*1024:
+		return 64 * 1024
+	// 当文件大小小于 5MB 时，设置缓冲区大小为 128KB
+	case fileSize < 5*1024*1024:
+		return 128 * 1024
+	// 当文件大小小于 10MB 时，设置缓冲区大小为 256KB
+	case fileSize < 10*1024*1024:
+		return 256 * 1024
+	// 当文件大小小于 100MB 时，设置缓冲区大小为 512KB
+	case fileSize < 100*1024*1024:
+		return 512 * 1024
+	// 当文件大小大于等于 100MB 时，设置缓冲区大小为 1MB
+	default:
+		return 1024 * 1024
+	}
+}
+
+// EnsureAbsPath 确保路径为绝对路径，如果不是则转换为绝对路径
+//
+// 参数:
+//   - path: 待检查的路径
+//   - pathType: 路径类型描述（用于错误信息）
+//
+// 返回值:
+//   - string: 绝对路径
+//   - error: 转换过程中的错误
+func EnsureAbsPath(path, pathType string) (string, error) {
+	if filepath.IsAbs(path) {
+		return path, nil
+	}
+
+	absPath, err := filepath.Abs(path)
+	if err != nil {
+		return "", fmt.Errorf("转换 %s 为绝对路径失败: %w", pathType, err)
+	}
+	return absPath, nil
+}
