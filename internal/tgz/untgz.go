@@ -119,18 +119,18 @@ func extractDirectory(targetPath, fileName string) error {
 // 返回值:
 //   - error: 操作过程中遇到的错误
 func extractRegularFile(tarReader *tar.Reader, targetPath string, header *tar.Header, config *config.Config) error {
-	// 检查文件的父目录是否存在, 如果不存在, 则创建
-	parentDir := filepath.Dir(targetPath)
-	if err := utils.EnsureDir(parentDir); err != nil {
-		return fmt.Errorf("处理文件 '%s' 时出错 - 创建文件父目录失败: %w", header.Name, err)
-	}
-
 	// 检查目标文件是否已存在
 	if _, err := os.Stat(targetPath); err == nil {
 		// 文件已存在，检查是否允许覆盖
 		if !config.OverwriteExisting {
 			return fmt.Errorf("目标文件已存在且不允许覆盖: %s", targetPath)
 		}
+	}
+
+	// 检查文件的父目录是否存在, 如果不存在, 则创建
+	parentDir := filepath.Dir(targetPath)
+	if err := utils.EnsureDir(parentDir); err != nil {
+		return fmt.Errorf("处理文件 '%s' 时出错 - 创建文件父目录失败: %w", header.Name, err)
 	}
 
 	// 获取文件的大小

@@ -415,3 +415,76 @@ func BenchmarkUnzip_LargeFile(b *testing.B) {
 		_ = Unzip(zipFile, extractDir, cfg)
 	}
 }
+
+func TestUnzip_OverwriteExisting(t *testing.T) {
+	tempDir := t.TempDir()
+	zipFile := filepath.Join(tempDir, "test.zip")
+	extractDir := filepath.Join(tempDir, "extract")
+
+	// 创建测试ZIP文件
+	originalContent := "Original content"
+	files := map[string]string{
+		"test.txt": originalContent,
+	}
+	createTestZip(t, zipFile, files)
+
+	// 创建解压目录
+	if err := os.MkdirAll(extractDir, 0755); err != nil {
+		t.Fatalf("创建解压目录失败: %v", err)
+	}
+
+	// 在解压目录中创建同名文件
+	existingFile := filepath.Join(extractDir, "test.txt")
+	existingContent := "Existing content"
+	if err := os.WriteFile(existingFile, []byte(existingContent), 0644); err != nil {
+		t.Fatalf("创建已存在文件失败: %v", err)
+	}
+
+	t.Run("不覆盖已存在文件", func(t *testing.T) {
+		// 设置不允许覆盖
+		cfg := config.New()
+		cfg.OverwriteExisting = false
+
+		// 尝试解压，应该失败
+		err := Unzip(zipFile, extractDir, cfg)
+		if err == nil {
+			t.Errorf("应该返回错误，因为文件已存在且不允许覆盖")
+		}
+
+		// 验证原文件内容未被修改
+		content, err := os.ReadFile(existingFile)
+		if err != nil {
+			t.Fatalf("读取文件失败: %v", err)
+		}
+
+		if string(content) != existingContent {
+			t.Errorf("文件内容被意外修改: got %q, want %q", string(content), existingContent)
+		}
+	})
+
+	t.Run("覆盖已存在文件", func(t *testing.T) {
+		// 重新创建已存在文件
+		if err := os.WriteFile(existingFile, []byte(existingContent), 0644); err != nil {
+			t.Fatalf("重新创建已存在文件失败: %v", err)
+		}
+
+		// 设置允许覆盖
+		cfg := config.New()
+		cfg.OverwriteExisting = true
+
+		// 解压，应该成功
+		if err := Unzip(zipFile, extractDir, cfg); err != nil {
+			t.Fatalf("解压失败: %v", err)
+		}
+
+		// 验证文件内容被覆盖
+		content, err := os.ReadFile(existingFile)
+		if err != nil {
+			t.Fatalf("读取文件失败: %v", err)
+		}
+
+		if string(content) != originalContent {
+			t.Errorf("文件内容 = %q, want %q", string(content), originalContent)
+		}
+	})
+}

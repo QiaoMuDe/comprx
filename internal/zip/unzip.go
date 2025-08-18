@@ -61,7 +61,7 @@ func Unzip(zipFilePath string, targetDir string, config *config.Config) error {
 				return err
 			}
 		default: // 处理普通文件
-			if err := extractRegularFile(file, targetPath, mode); err != nil {
+			if err := extractRegularFile(file, targetPath, mode, config); err != nil {
 				return err
 			}
 		}
@@ -127,10 +127,19 @@ func extractSymlink(file *zip.File, targetPath string) error {
 //   - file: ZIP文件条目
 //   - targetPath: 目标路径
 //   - mode: 文件模式
+//   - config: 解压配置
 //
 // 返回值:
 //   - error: 操作过程中遇到的错误
-func extractRegularFile(file *zip.File, targetPath string, mode os.FileMode) error {
+func extractRegularFile(file *zip.File, targetPath string, mode os.FileMode, config *config.Config) error {
+	// 检查目标文件是否已存在
+	if _, err := os.Stat(targetPath); err == nil {
+		// 文件已存在，检查是否允许覆盖
+		if !config.OverwriteExisting {
+			return fmt.Errorf("目标文件已存在且不允许覆盖: %s", targetPath)
+		}
+	}
+
 	// 检查file的父目录是否存在, 如果不存在, 则创建
 	parentDir := filepath.Dir(targetPath)
 	if err := utils.EnsureDir(parentDir); err != nil {

@@ -129,8 +129,8 @@ func TestTgz_InvalidDestination(t *testing.T) {
 		t.Fatalf("创建测试文件失败: %v", err)
 	}
 
-	// 使用无效的目标路径
-	invalidPath := filepath.Join(tempDir, "nonexistent", "test.tgz")
+	// 使用无效的目标路径（空字符串）
+	invalidPath := ""
 	cfg := config.New()
 
 	err := Tgz(invalidPath, testFile, cfg)

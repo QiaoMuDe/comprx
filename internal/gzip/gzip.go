@@ -35,8 +35,23 @@ func Gzip(dst string, src string, cfg *config.Config) error {
 	if err != nil {
 		return fmt.Errorf("获取源文件信息失败: %w", err)
 	}
+
+	// 检查源路径是否为目录
 	if srcInfo.IsDir() {
 		return fmt.Errorf("GZIP 只支持单文件压缩，不支持目录压缩")
+	}
+
+	// 检查目标文件是否已存在
+	if _, err := os.Stat(dst); err == nil {
+		// 文件已存在，检查是否允许覆盖
+		if !cfg.OverwriteExisting {
+			return fmt.Errorf("目标文件已存在且不允许覆盖: %s", dst)
+		}
+	}
+
+	// 确保目标目录存在
+	if err := utils.EnsureDir(filepath.Dir(dst)); err != nil {
+		return fmt.Errorf("创建目标目录失败: %w", err)
 	}
 
 	// 创建 GZIP 文件

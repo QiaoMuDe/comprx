@@ -53,6 +53,14 @@ func Unbz2(bz2FilePath string, targetPath string, config *config.Config) error {
 		targetPath = filepath.Join(targetPath, baseName)
 	}
 
+	// 检查目标文件是否已存在
+	if _, err := os.Stat(targetPath); err == nil {
+		// 文件已存在，检查是否允许覆盖
+		if !config.OverwriteExisting {
+			return fmt.Errorf("目标文件已存在且不允许覆盖: %s", targetPath)
+		}
+	}
+
 	// 检查目标文件的父目录是否存在，如果不存在则创建
 	parentDir := filepath.Dir(targetPath)
 	if err := utils.EnsureDir(parentDir); err != nil {
