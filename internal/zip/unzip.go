@@ -22,15 +22,6 @@ import (
 // 返回值:
 //   - error: 解压缩过程中发生的错误
 func Unzip(zipFilePath string, targetDir string, config *config.Config) error {
-	// 确保路径为绝对路径
-	var absErr error
-	if zipFilePath, absErr = utils.EnsureAbsPath(zipFilePath, "ZIP文件路径"); absErr != nil {
-		return absErr
-	}
-	if targetDir, absErr = utils.EnsureAbsPath(targetDir, "目标目录路径"); absErr != nil {
-		return absErr
-	}
-
 	// 打开 ZIP 文件
 	zipReader, err := zip.OpenReader(zipFilePath)
 	if err != nil {
@@ -44,7 +35,7 @@ func Unzip(zipFilePath string, targetDir string, config *config.Config) error {
 	}
 
 	// 创建进度显示器
-	progress := progress.NewConsoleProgress(true, progress.StyleText)
+	progress := progress.NewProgress(true, progress.StyleText)
 	progress.Archive(zipFilePath)
 
 	// 遍历 ZIP 文件中的每个文件或目录
