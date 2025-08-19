@@ -45,9 +45,6 @@ func Untar(tarFilePath string, targetDir string, config *config.Config) error {
 		return fmt.Errorf("创建目标目录失败: %w", err)
 	}
 
-	// 创建大小跟踪器
-	sizeTracker := utils.NewSizeTracker()
-
 	// 遍历 TAR 文件中的每个文件或目录
 	for {
 		header, err := tarReader.Next()
@@ -70,18 +67,22 @@ func Untar(tarFilePath string, targetDir string, config *config.Config) error {
 			if err := extractDirectory(targetPath, header.Name); err != nil {
 				return err
 			}
+
 		case tar.TypeReg: // 处理普通文件
-			if err := extractRegularFile(tarReader, targetPath, header, config, sizeTracker); err != nil {
+			if err := extractRegularFile(tarReader, targetPath, header, config); err != nil {
 				return err
 			}
+
 		case tar.TypeSymlink: // 处理符号链接
 			if err := extractSymlink(header, targetPath); err != nil {
 				return err
 			}
+
 		case tar.TypeLink: // 处理硬链接
 			if err := extractHardlink(header, targetPath, targetDir); err != nil {
 				return err
 			}
+
 		default:
 			// 对于其他类型的文件，我们跳过处理
 			fmt.Printf("跳过不支持的文件类型: %s (类型: %c)\n", header.Name, header.Typeflag)
@@ -113,11 +114,10 @@ func extractDirectory(targetPath, fileName string) error {
 //   - targetPath: 目标路径
 //   - header: TAR文件头
 //   - config: 解压配置
-//   - sizeTracker: 大小跟踪器
 //
 // 返回值:
 //   - error: 操作过程中遇到的错误
-func extractRegularFile(tarReader *tar.Reader, targetPath string, header *tar.Header, config *config.Config, sizeTracker *utils.SizeTracker) error {
+func extractRegularFile(tarReader *tar.Reader, targetPath string, header *tar.Header, config *config.Config) error {
 	// 检查目标文件是否已存在
 	if _, err := os.Stat(targetPath); err == nil {
 		// 文件已存在，检查是否允许覆盖
@@ -134,16 +134,6 @@ func extractRegularFile(tarReader *tar.Reader, targetPath string, header *tar.He
 
 	// 获取文件的大小
 	fileSize := header.Size
-
-	// 检查单个文件大小
-	if config.EnableSizeCheck && fileSize > config.MaxFileSize {
-		return fmt.Errorf("文件 %s 大小 %d 字节超过限制 %d 字节", header.Name, fileSize, config.MaxFileSize)
-	}
-
-	// 更新总大小跟踪
-	if err := sizeTracker.AddSize(config, fileSize); err != nil {
-		return err
-	}
 
 	// 如果文件大小为0，只创建空文件，不进行读写操作
 	if fileSize == 0 {

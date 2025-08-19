@@ -31,11 +31,6 @@ func Zip(dst string, src string, config *config.Config) error {
 		return absErr
 	}
 
-	// 预检查源文件/目录大小
-	if err := preCheckSourceSize(src, config); err != nil {
-		return fmt.Errorf("源大小检查失败: %w", err)
-	}
-
 	// 检查目标文件是否已存在
 	if _, err := os.Stat(dst); err == nil {
 		// 文件已存在，检查是否允许覆盖
@@ -56,11 +51,8 @@ func Zip(dst string, src string, config *config.Config) error {
 	}
 	defer func() { _ = zipFile.Close() }()
 
-	// 创建通用的压缩验证写入器包装器
-	validatingWriter := utils.NewCompressionValidatingWriter(zipFile, config)
-
 	// 创建 ZIP 写入器（使用带验证的写入器）
-	zipWriter := zip.NewWriter(validatingWriter)
+	zipWriter := zip.NewWriter(zipFile)
 	defer func() { _ = zipWriter.Close() }()
 
 	// 检查源路径是文件还是目录
@@ -69,17 +61,14 @@ func Zip(dst string, src string, config *config.Config) error {
 		return fmt.Errorf("获取源路径信息失败: %w", err)
 	}
 
-	// 创建大小跟踪器
-	tracker := utils.NewSizeTracker()
-
 	// 根据源路径类型处理
 	var zipErr error
 	if srcInfo.IsDir() {
 		// 遍历目录并添加文件到 ZIP 包
-		zipErr = walkDirectoryForZip(src, zipWriter, config, tracker)
+		zipErr = walkDirectoryForZip(src, zipWriter, config)
 	} else {
-		// 新增的单文件处理逻辑
-		zipErr = processRegularFileWithValidation(zipWriter, src, filepath.Base(src), srcInfo, config, tracker)
+		// 单文件处理逻辑
+		zipErr = processRegularFile(zipWriter, src, filepath.Base(src), srcInfo, config)
 	}
 
 	// 检查是否有错误发生
@@ -88,60 +77,6 @@ func Zip(dst string, src string, config *config.Config) error {
 	}
 
 	return nil
-}
-
-// preCheckSourceSize 预检查源文件/目录大小
-//
-// 参数:
-//   - src: 源路径
-//   - config: 压缩配置
-//
-// 返回值:
-//   - error: 检查过程中的错误
-func preCheckSourceSize(src string, config *config.Config) error {
-	info, err := os.Stat(src)
-	if err != nil {
-		return fmt.Errorf("获取源路径信息失败: %w", err)
-	}
-
-	if info.IsDir() {
-		// 预检查目录总大小
-		_, err := utils.PreCheckDirectorySize(config, src)
-		return err
-	} else {
-		// 预检查单个文件大小
-		_, err := utils.PreCheckSingleFile(config, src)
-		return err
-	}
-}
-
-// processRegularFileWithValidation 处理普通文件（带大小验证）
-//
-// 参数:
-//   - zipWriter: *zip.Writer - ZIP 文件写入器
-//   - path: string - 文件路径
-//   - headerName: string - ZIP 文件中的文件名
-//   - info: os.FileInfo - 文件信息
-//   - config: 压缩配置
-//   - tracker: 大小跟踪器
-//
-// 返回值:
-//   - error - 操作过程中遇到的错误
-func processRegularFileWithValidation(zipWriter *zip.Writer, path, headerName string, info os.FileInfo, config *config.Config, tracker *utils.SizeTracker) error {
-	fileSize := info.Size()
-
-	// 验证单个文件大小
-	if err := utils.ValidateFileSize(config, path, fileSize); err != nil {
-		return err
-	}
-
-	// 验证并更新累计大小
-	if err := tracker.AddSize(config, fileSize); err != nil {
-		return err
-	}
-
-	// 调用原有的文件处理逻辑
-	return processRegularFile(zipWriter, path, headerName, info, config)
 }
 
 // processRegularFile 处理普通文件
@@ -297,11 +232,10 @@ func getCompressionMethod(cfg *config.Config) uint16 {
 //   - src: 源目录路径
 //   - zipWriter: ZIP写入器
 //   - config: 压缩配置
-//   - tracker: 大小跟踪器
 //
 // 返回值:
 //   - error: 遍历过程中发生的错误
-func walkDirectoryForZip(src string, zipWriter *zip.Writer, config *config.Config, tracker *utils.SizeTracker) error {
+func walkDirectoryForZip(src string, zipWriter *zip.Writer, config *config.Config) error {
 	return filepath.WalkDir(src, func(path string, entry fs.DirEntry, err error) error {
 		if err != nil {
 			// 如果不存在则忽略
@@ -328,15 +262,18 @@ func walkDirectoryForZip(src string, zipWriter *zip.Writer, config *config.Confi
 			if err != nil {
 				return fmt.Errorf("处理文件 '%s' 时出错 - 获取文件信息失败: %w", path, err)
 			}
-			return processRegularFileWithValidation(zipWriter, path, headerName, info, config, tracker)
+			return processRegularFile(zipWriter, path, headerName, info, config)
+
 		case entry.IsDir(): // 处理目录
 			info, err := entry.Info()
 			if err != nil {
 				return fmt.Errorf("处理目录 '%s' 时出错 - 获取目录信息失败: %w", path, err)
 			}
 			return processDirectory(zipWriter, headerName, info)
+
 		case entry.Type()&fs.ModeSymlink != 0: // 处理符号链接
 			return processSymlink(zipWriter, path, headerName, entry.Type())
+
 		default: // 处理特殊文件
 			return processSpecialFile(zipWriter, headerName, entry.Type())
 		}

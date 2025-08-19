@@ -84,32 +84,6 @@ func (c *Comprx) SetCompressionLevel(level config.CompressionLevel) {
 	c.config.CompressionLevel = level
 }
 
-// WithSizeLimit 设置大小限制配置
-//
-// 参数:
-//   - enabled: 是否启用大小检查
-//   - maxFileSize: 单个文件最大大小（字节）
-//   - maxTotalSize: 压缩包总大小限制（字节）
-//
-// 返回:
-//   - *Comprx: 压缩器实例
-func (c *Comprx) WithSizeLimit(enabled bool, maxFileSize, maxTotalSize int64) *Comprx {
-	c.SetSizeLimit(enabled, maxFileSize, maxTotalSize)
-	return c
-}
-
-// SetSizeLimit 设置大小限制配置
-//
-// 参数:
-//   - enabled: 是否启用大小检查
-//   - maxFileSize: 单个文件最大大小（字节）
-//   - maxTotalSize: 压缩包总大小限制（字节）
-func (c *Comprx) SetSizeLimit(enabled bool, maxFileSize, maxTotalSize int64) {
-	c.config.EnableSizeCheck = enabled
-	c.config.MaxFileSize = maxFileSize
-	c.config.MaxTotalSize = maxTotalSize
-}
-
 // ==============================================
 // 打包压缩方法
 // ==============================================

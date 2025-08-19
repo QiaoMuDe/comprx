@@ -38,16 +38,10 @@ func Unbz2(bz2FilePath string, targetPath string, config *config.Config) error {
 	}
 	defer func() { _ = bz2File.Close() }()
 
-	// 获取BZIP2文件信息用于预验证
+	// 获取BZIP2文件信息
 	bz2Info, err := bz2File.Stat()
 	if err != nil {
 		return fmt.Errorf("获取BZIP2文件信息失败: %w", err)
-	}
-
-	// 预验证BZIP2文件大小（检查输入文件合理性）
-	if config.EnableSizeCheck && bz2Info.Size() > config.MaxTotalSize {
-		return fmt.Errorf("BZIP2文件大小 %s 超过处理限制 %s",
-			utils.FormatFileSize(bz2Info.Size()), utils.FormatFileSize(config.MaxTotalSize))
 	}
 
 	// 创建 BZIP2 读取器
@@ -87,26 +81,13 @@ func Unbz2(bz2FilePath string, targetPath string, config *config.Config) error {
 	}
 	defer func() { _ = targetFile.Close() }()
 
-	// 使用之前获取的bz2Info来估算缓冲区大小
-
 	// 获取缓冲区大小并创建缓冲区
 	bufferSize := utils.GetBufferSize(bz2Info.Size())
 	buffer := utils.GetBuffer(bufferSize)
 	defer utils.PutBuffer(buffer)
 
-	// 创建大小跟踪器（用于解压过程中的大小检查）
-	tracker := utils.NewSizeTracker()
-
-	// 创建通用的解压验证写入器包装器
-	validatingWriter := utils.NewDecompressionValidatingWriter(
-		targetFile,
-		config,
-		bz2Info.Size(),
-		tracker,
-	)
-
-	// 解压缩文件内容（使用带验证的写入器）
-	if _, err := io.CopyBuffer(validatingWriter, bz2Reader, buffer); err != nil {
+	// 解压缩文件内容到目标文件
+	if _, err := io.CopyBuffer(targetFile, bz2Reader, buffer); err != nil {
 		return fmt.Errorf("解压缩文件失败: %w", err)
 	}
 

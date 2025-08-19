@@ -44,12 +44,6 @@ func Ungzip(gzipFilePath string, targetPath string, config *config.Config) error
 		return fmt.Errorf("获取GZIP文件信息失败: %w", err)
 	}
 
-	// 预验证GZIP文件大小（检查输入文件合理性）
-	if config.EnableSizeCheck && gzipInfo.Size() > config.MaxTotalSize {
-		return fmt.Errorf("GZIP文件大小 %s 超过处理限制 %s",
-			utils.FormatFileSize(gzipInfo.Size()), utils.FormatFileSize(config.MaxTotalSize))
-	}
-
 	// 创建 GZIP 读取器
 	gzipReader, err := gzip.NewReader(gzipFile)
 	if err != nil {
@@ -107,19 +101,8 @@ func Ungzip(gzipFilePath string, targetPath string, config *config.Config) error
 	buffer := utils.GetBuffer(bufferSize)
 	defer utils.PutBuffer(buffer)
 
-	// 创建大小跟踪器（用于解压过程中的大小检查）
-	tracker := utils.NewSizeTracker()
-
-	// 创建通用的解压验证写入器包装器
-	validatingWriter := utils.NewDecompressionValidatingWriter(
-		targetFile,
-		config,
-		gzipInfo.Size(),
-		tracker,
-	)
-
-	// 解压缩文件内容（使用带验证的写入器）
-	if _, err := io.CopyBuffer(validatingWriter, gzipReader, buffer); err != nil {
+	// 解压缩文件内容
+	if _, err := io.CopyBuffer(targetFile, gzipReader, buffer); err != nil {
 		return fmt.Errorf("解压缩文件失败: %w", err)
 	}
 

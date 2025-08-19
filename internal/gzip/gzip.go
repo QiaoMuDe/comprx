@@ -41,11 +41,6 @@ func Gzip(dst string, src string, cfg *config.Config) error {
 		return fmt.Errorf("GZIP 只支持单文件压缩，不支持目录压缩")
 	}
 
-	// 预检查源文件大小
-	if _, err := utils.PreCheckSingleFile(cfg, src); err != nil {
-		return fmt.Errorf("源文件大小检查失败: %w", err)
-	}
-
 	// 检查目标文件是否已存在
 	if _, err := os.Stat(dst); err == nil {
 		// 文件已存在，检查是否允许覆盖
@@ -92,11 +87,8 @@ func Gzip(dst string, src string, cfg *config.Config) error {
 	buffer := utils.GetBuffer(bufferSize)
 	defer utils.PutBuffer(buffer)
 
-	// 创建通用的压缩验证写入器包装器
-	validatingWriter := utils.NewCompressionValidatingWriter(gzipWriter, cfg)
-
-	// 复制文件内容到GZIP写入器（使用带验证的写入器）
-	if _, err := io.CopyBuffer(validatingWriter, srcFile, buffer); err != nil {
+	// 复制文件内容到GZIP写入器
+	if _, err := io.CopyBuffer(gzipWriter, srcFile, buffer); err != nil {
 		return fmt.Errorf("压缩文件失败: %w", err)
 	}
 

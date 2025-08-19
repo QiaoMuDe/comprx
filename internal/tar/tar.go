@@ -50,11 +50,8 @@ func Tar(dst string, src string, config *config.Config) error {
 	}
 	defer func() { _ = tarFile.Close() }()
 
-	// 创建通用的压缩验证写入器包装器
-	validatingWriter := utils.NewCompressionValidatingWriter(tarFile, config)
-
-	// 创建 TAR 写入器（使用带验证的写入器）
-	tarWriter := tar.NewWriter(validatingWriter)
+	// 创建 TAR 写入器
+	tarWriter := tar.NewWriter(tarFile)
 	defer func() { _ = tarWriter.Close() }()
 
 	// 检查源路径是文件还是目录
@@ -63,30 +60,14 @@ func Tar(dst string, src string, config *config.Config) error {
 		return fmt.Errorf("获取源路径信息失败: %w", err)
 	}
 
-	// 预检查文件/目录大小
-	if srcInfo.IsDir() {
-		// 目录：预检查整个目录的大小
-		if _, err := utils.PreCheckDirectorySize(config, src); err != nil {
-			return err
-		}
-	} else {
-		// 单文件：预检查文件大小
-		if _, err := utils.PreCheckSingleFile(config, src); err != nil {
-			return err
-		}
-	}
-
-	// 创建大小跟踪器
-	sizeTracker := utils.NewSizeTracker()
-
 	// 根据源路径类型处理
 	var tarErr error
 	if srcInfo.IsDir() {
 		// 遍历目录并添加文件到 TAR 包
-		tarErr = walkDirectoryForTarWithValidation(src, tarWriter, config, sizeTracker)
+		tarErr = walkDirectoryForTar(src, tarWriter)
 	} else {
 		// 单文件处理逻辑
-		tarErr = processRegularFileWithValidation(tarWriter, src, filepath.Base(src), srcInfo, config, sizeTracker)
+		tarErr = processRegularFileWithValidation(tarWriter, src, filepath.Base(src), srcInfo)
 	}
 
 	// 检查是否有错误发生
@@ -177,17 +158,15 @@ func processSpecialFile(tarWriter *tar.Writer, headerName string, info os.FileIn
 	return nil
 }
 
-// walkDirectoryForTarWithValidation 遍历目录并处理文件到TAR包（带大小验证）
+// walkDirectoryForTar 遍历目录并处理文件到TAR包
 //
 // 参数:
 //   - src: string - 源目录路径
 //   - tarWriter: *tar.Writer - TAR 文件写入器
-//   - config: *config.Config - 配置
-//   - tracker: *utils.SizeTracker - 大小跟踪器
 //
 // 返回值:
 //   - error - 操作过程中遇到的错误
-func walkDirectoryForTarWithValidation(src string, tarWriter *tar.Writer, config *config.Config, tracker *utils.SizeTracker) error {
+func walkDirectoryForTar(src string, tarWriter *tar.Writer) error {
 	return filepath.WalkDir(src, func(path string, entry os.DirEntry, err error) error {
 		if err != nil {
 			// 如果不存在则忽略
@@ -214,19 +193,22 @@ func walkDirectoryForTarWithValidation(src string, tarWriter *tar.Writer, config
 			if err != nil {
 				return fmt.Errorf("处理文件 '%s' 时出错 - 获取文件信息失败: %w", path, err)
 			}
-			return processRegularFileWithValidation(tarWriter, path, headerName, info, config, tracker)
+			return processRegularFileWithValidation(tarWriter, path, headerName, info)
+
 		case entry.IsDir(): // 处理目录
 			info, err := entry.Info()
 			if err != nil {
 				return fmt.Errorf("处理目录 '%s' 时出错 - 获取目录信息失败: %w", path, err)
 			}
 			return processDirectory(tarWriter, headerName, info)
+
 		case entry.Type()&os.ModeSymlink != 0: // 处理符号链接
 			info, err := entry.Info()
 			if err != nil {
 				return fmt.Errorf("处理符号链接 '%s' 时出错 - 获取文件信息失败: %w", path, err)
 			}
 			return processSymlink(tarWriter, path, headerName, info)
+
 		default: // 处理特殊文件
 			info, err := entry.Info()
 			if err != nil {
@@ -244,22 +226,10 @@ func walkDirectoryForTarWithValidation(src string, tarWriter *tar.Writer, config
 //   - path: string - 源路径
 //   - headerName: string - TAR 文件中的文件名
 //   - info: os.FileInfo - 文件信息
-//   - config: *config.Config - 配置
-//   - tracker: *utils.SizeTracker - 大小跟踪器
 //
 // 返回值:
 //   - error - 操作过程中遇到的错误
-func processRegularFileWithValidation(tarWriter *tar.Writer, path, headerName string, info os.FileInfo, config *config.Config, tracker *utils.SizeTracker) error {
-	// 检查单个文件大小
-	if config.EnableSizeCheck && info.Size() > config.MaxFileSize {
-		return fmt.Errorf("文件 %s 大小 %d 字节超过限制 %d 字节", path, info.Size(), config.MaxFileSize)
-	}
-
-	// 更新总大小跟踪
-	if err := tracker.AddSize(config, info.Size()); err != nil {
-		return err
-	}
-
+func processRegularFileWithValidation(tarWriter *tar.Writer, path, headerName string, info os.FileInfo) error {
 	// 创建文件头
 	header, err := tar.FileInfoHeader(info, "")
 	if err != nil {

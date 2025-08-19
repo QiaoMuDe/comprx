@@ -31,23 +31,10 @@ func Tgz(dst string, src string, cfg *config.Config) error {
 		return absErr
 	}
 
-	// 检查源路径是文件还是目录，并进行大小预检查
+	// 检查源路径是文件还是目录
 	srcInfo, err := os.Stat(src)
 	if err != nil {
 		return fmt.Errorf("获取源路径信息失败: %w", err)
-	}
-
-	// 根据源路径类型进行大小预检查
-	if srcInfo.IsDir() {
-		// 预检查目录总大小
-		if _, err := utils.PreCheckDirectorySize(cfg, src); err != nil {
-			return fmt.Errorf("目录大小预检查失败: %w", err)
-		}
-	} else {
-		// 预检查单个文件大小
-		if _, err := utils.PreCheckSingleFile(cfg, src); err != nil {
-			return fmt.Errorf("文件大小预检查失败: %w", err)
-		}
 	}
 
 	// 检查目标文件是否已存在
@@ -70,11 +57,8 @@ func Tgz(dst string, src string, cfg *config.Config) error {
 	}
 	defer func() { _ = tgzFile.Close() }()
 
-	// 创建通用的压缩验证写入器包装器
-	validatingWriter := utils.NewCompressionValidatingWriter(tgzFile, cfg)
-
-	// 创建 GZIP 写入器（使用带验证的写入器）
-	gzipWriter, err := gzip.NewWriterLevel(validatingWriter, config.GetCompressionLevel(cfg))
+	// 创建 GZIP 写入器
+	gzipWriter, err := gzip.NewWriterLevel(tgzFile, config.GetCompressionLevel(cfg))
 	if err != nil {
 		return fmt.Errorf("创建 GZIP 写入器失败: %w", err)
 	}
@@ -84,17 +68,14 @@ func Tgz(dst string, src string, cfg *config.Config) error {
 	tarWriter := tar.NewWriter(gzipWriter)
 	defer func() { _ = tarWriter.Close() }()
 
-	// 创建大小跟踪器
-	sizeTracker := utils.NewSizeTracker()
-
 	// 根据源路径类型处理
 	var tgzErr error
 	if srcInfo.IsDir() {
 		// 遍历目录并添加文件到 TGZ 包（带大小验证）
-		tgzErr = walkDirectoryForTgzWithValidation(src, tarWriter, cfg, sizeTracker)
+		tgzErr = walkDirectoryForTgzWithValidation(src, tarWriter, cfg)
 	} else {
 		// 单文件处理逻辑
-		tgzErr = processRegularFileWithValidation(tarWriter, src, filepath.Base(src), srcInfo, cfg, sizeTracker)
+		tgzErr = processRegularFile(tarWriter, src, filepath.Base(src), srcInfo)
 	}
 
 	// 检查是否有错误发生
@@ -103,34 +84,6 @@ func Tgz(dst string, src string, cfg *config.Config) error {
 	}
 
 	return nil
-}
-
-// processRegularFileWithValidation 处理普通文件（带大小验证）
-//
-// 参数:
-//   - tarWriter: *tar.Writer - TAR 文件写入器
-//   - path: string - 文件路径
-//   - headerName: string - TAR 文件中的文件名
-//   - info: os.FileInfo - 文件信息
-//   - cfg: 压缩配置
-//   - sizeTracker: 大小跟踪器
-//
-// 返回值:
-//   - error - 操作过程中遇到的错误
-func processRegularFileWithValidation(tarWriter *tar.Writer, path, headerName string, info os.FileInfo, cfg *config.Config, sizeTracker *utils.SizeTracker) error {
-	fileSize := info.Size()
-
-	// 验证单个文件大小
-	if err := utils.ValidateFileSize(cfg, path, fileSize); err != nil {
-		return err
-	}
-
-	// 验证累计大小
-	if err := sizeTracker.AddSize(cfg, fileSize); err != nil {
-		return err
-	}
-
-	return processRegularFile(tarWriter, path, headerName, info)
 }
 
 // processRegularFile 处理普通文件
@@ -265,11 +218,10 @@ func processSpecialFile(tarWriter *tar.Writer, headerName string, info os.FileIn
 //   - src: 源目录路径
 //   - tarWriter: TAR写入器
 //   - cfg: 压缩配置
-//   - sizeTracker: 大小跟踪器
 //
 // 返回值:
 //   - error: 遍历过程中发生的错误
-func walkDirectoryForTgzWithValidation(src string, tarWriter *tar.Writer, cfg *config.Config, sizeTracker *utils.SizeTracker) error {
+func walkDirectoryForTgzWithValidation(src string, tarWriter *tar.Writer, cfg *config.Config) error {
 	return filepath.WalkDir(src, func(path string, entry os.DirEntry, err error) error {
 		if err != nil {
 			// 如果不存在则忽略
@@ -296,19 +248,22 @@ func walkDirectoryForTgzWithValidation(src string, tarWriter *tar.Writer, cfg *c
 			if err != nil {
 				return fmt.Errorf("处理文件 '%s' 时出错 - 获取文件信息失败: %w", path, err)
 			}
-			return processRegularFileWithValidation(tarWriter, path, headerName, info, cfg, sizeTracker)
+			return processRegularFile(tarWriter, path, headerName, info)
+
 		case entry.IsDir(): // 处理目录
 			info, err := entry.Info()
 			if err != nil {
 				return fmt.Errorf("处理目录 '%s' 时出错 - 获取目录信息失败: %w", path, err)
 			}
 			return processDirectory(tarWriter, headerName, info)
+
 		case entry.Type()&os.ModeSymlink != 0: // 处理符号链接
 			info, err := entry.Info()
 			if err != nil {
 				return fmt.Errorf("处理符号链接 '%s' 时出错 - 获取文件信息失败: %w", path, err)
 			}
 			return processSymlink(tarWriter, path, headerName, info)
+
 		default: // 处理特殊文件
 			info, err := entry.Info()
 			if err != nil {
