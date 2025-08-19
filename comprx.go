@@ -52,7 +52,7 @@ func NewComprx() *Comprx {
 // 返回:
 //   - *Comprx: 压缩器实例
 func (c *Comprx) WithOverwriteExisting(overwrite bool) *Comprx {
-	c.config.OverwriteExisting = overwrite
+	c.SetOverwriteExisting(overwrite)
 	return c
 }
 
@@ -72,7 +72,7 @@ func (c *Comprx) SetOverwriteExisting(overwrite bool) {
 // 返回:
 //   - *Comprx: 压缩器实例
 func (c *Comprx) WithCompressionLevel(level config.CompressionLevel) *Comprx {
-	c.config.CompressionLevel = level
+	c.SetCompressionLevel(level)
 	return c
 }
 
@@ -94,9 +94,7 @@ func (c *Comprx) SetCompressionLevel(level config.CompressionLevel) {
 // 返回:
 //   - *Comprx: 压缩器实例
 func (c *Comprx) WithSizeLimit(enabled bool, maxFileSize, maxTotalSize int64) *Comprx {
-	c.config.EnableSizeCheck = enabled
-	c.config.MaxFileSize = maxFileSize
-	c.config.MaxTotalSize = maxTotalSize
+	c.SetSizeLimit(enabled, maxFileSize, maxTotalSize)
 	return c
 }
 
