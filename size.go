@@ -1,76 +1,42 @@
 package comprx
 
-import (
-	"os"
-	"path/filepath"
+import "gitee.com/MM-Q/comprx/internal/utils"
 
-	"gitee.com/MM-Q/comprx/internal/utils"
-)
-
-// GetFileSize 获取单个文件的大小（字节）
+// GetSizeOrZero 获取文件或目录的大小，出错时返回 0
 //
 // 参数:
-//   - filePath: 文件路径
+//   - path: 文件或目录路径
 //
 // 返回:
-//   - int64: 文件大小（字节）
+//   - int64: 文件或目录的总大小（字节），出错时返回 0
+//
+// 功能:
+//   - 如果是文件，返回文件大小
+//   - 如果是目录，返回目录中所有普通文件的总大小
+//   - 忽略符号链接等特殊文件
+//   - 发生任何错误时返回 0，不抛出异常
 //
 // 注意:
-//   - 如果文件不存在，则返回 0
-//   - 如果文件不是普通文件，则返回 0
-//   - 如果获取文件信息时发生错误，则返回 0
-func GetFileSize(filePath string) int64 {
-	info, err := os.Stat(filePath)
-	if err != nil {
-		return 0
-	}
-
-	// 如果不是普通文件，返回 0
-	if !info.Mode().IsRegular() {
-		return 0
-	}
-
-	return info.Size()
+//   - 此函数为 GetSize 的安全版本，适用于不需要错误处理的场景
+//   - 如需详细错误信息，请使用 GetSize 函数
+func GetSizeOrZero(path string) int64 {
+	return utils.GetSizeOrZero(path)
 }
 
-// GetDirectorySize 获取目录中所有文件的总大小（字节）
+// GetSize 获取文件或目录的大小(字节)
 //
 // 参数:
-//   - dirPath: 目录路径
+//   - path: 文件或目录路径
 //
 // 返回:
-//   - int64: 目录中所有文件的总大小（字节）
+//   - int64: 文件或目录的总大小(字节)
+//   - error: 错误信息
 //
 // 注意:
-//   - 如果目录不存在，则返回 0
-//   - 如果目录为空，返回 0
-//   - 如果目录中包含非普通文件，则忽略这些文件
-//   - 如果遍历目录时发生错误，则返回 0
-func GetDirectorySize(dirPath string) (totalSize int64) {
-	if !utils.Exists(dirPath) {
-		return 0
-	}
-
-	err := filepath.WalkDir(dirPath, func(path string, entry os.DirEntry, err error) error {
-		if err != nil {
-			// 忽略错误，继续遍历
-			return nil
-		}
-
-		// 只计算普通文件的大小
-		if entry.Type().IsRegular() {
-			if info, err := entry.Info(); err == nil {
-				totalSize += info.Size()
-			}
-		}
-
-		return nil
-	})
-
-	// 如果遍历失败，返回 0
-	if err != nil {
-		return 0
-	}
-
-	return totalSize
+//   - 如果是文件，返回文件大小
+//   - 如果是目录，返回目录中所有文件的总大小
+//   - 如果路径不存在，返回错误
+//   - 只计算普通文件的大小，忽略符号链接等特殊文件
+func GetSize(path string) (int64, error) {
+	return utils.GetSize(path)
 }

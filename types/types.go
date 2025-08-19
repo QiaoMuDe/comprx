@@ -6,6 +6,20 @@ import (
 	"strings"
 )
 
+// 进度条样式常量
+const (
+	// StyleText 文本样式进度条 - 使用文字描述进度
+	StyleText = "text"
+
+	// StyleUnicode Unicode样式进度条 - 使用Unicode字符绘制精美进度条
+	// 示例: ████████████░░░░░░░░ 60%
+	StyleUnicode = "unicode"
+
+	// StyleASCII ASCII样式进度条 - 使用基础ASCII字符绘制兼容性最好的进度条
+	// 示例: [##########          ] 50%
+	StyleASCII = "ascii"
+)
+
 // 支持的压缩格式
 type CompressType string
 
