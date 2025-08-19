@@ -50,8 +50,11 @@ func Tar(dst string, src string, config *config.Config) error {
 	}
 	defer func() { _ = tarFile.Close() }()
 
-	// 创建 TAR 写入器
-	tarWriter := tar.NewWriter(tarFile)
+	// 创建通用的压缩验证写入器包装器
+	validatingWriter := utils.NewCompressionValidatingWriter(tarFile, config)
+
+	// 创建 TAR 写入器（使用带验证的写入器）
+	tarWriter := tar.NewWriter(validatingWriter)
 	defer func() { _ = tarWriter.Close() }()
 
 	// 检查源路径是文件还是目录

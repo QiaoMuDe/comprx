@@ -92,12 +92,8 @@ func Gzip(dst string, src string, cfg *config.Config) error {
 	buffer := utils.GetBuffer(bufferSize)
 	defer utils.PutBuffer(buffer)
 
-	// 创建带验证的写入器包装器
-	validatingWriter := &validatingWriter{
-		writer:       gzipWriter,
-		config:       cfg,
-		originalSize: fileSize,
-	}
+	// 创建通用的压缩验证写入器包装器
+	validatingWriter := utils.NewCompressionValidatingWriter(gzipWriter, cfg)
 
 	// 复制文件内容到GZIP写入器（使用带验证的写入器）
 	if _, err := io.CopyBuffer(validatingWriter, srcFile, buffer); err != nil {
@@ -105,43 +101,4 @@ func Gzip(dst string, src string, cfg *config.Config) error {
 	}
 
 	return nil
-}
-
-// validatingWriter 带验证功能的写入器包装器
-type validatingWriter struct {
-	writer       io.Writer
-	config       *config.Config
-	originalSize int64
-	totalWritten int64
-}
-
-// Write 实现io.Writer接口，在写入时进行安全验证
-func (vw *validatingWriter) Write(p []byte) (n int, err error) {
-	// 写入数据
-	n, err = vw.writer.Write(p)
-	if err != nil {
-		return n, err
-	}
-
-	// 更新总写入大小
-	vw.totalWritten += int64(n)
-
-	// 验证压缩后的大小是否超过单文件限制
-	if vw.config.EnableSizeCheck && vw.totalWritten > vw.config.MaxFileSize {
-		return n, fmt.Errorf("压缩后文件大小 %s 超过单文件限制 %s",
-			utils.FormatFileSize(vw.totalWritten), utils.FormatFileSize(vw.config.MaxFileSize))
-	}
-
-	// 验证压缩后的大小是否超过总大小限制
-	if vw.config.EnableSizeCheck && vw.totalWritten > vw.config.MaxTotalSize {
-		return n, fmt.Errorf("压缩后文件大小 %s 超过总大小限制 %s",
-			utils.FormatFileSize(vw.totalWritten), utils.FormatFileSize(vw.config.MaxTotalSize))
-	}
-
-	// 验证压缩比（防止异常压缩）
-	if err := utils.ValidateCompressionRatio(vw.config, vw.originalSize, vw.totalWritten); err != nil {
-		return n, fmt.Errorf("压缩比验证失败: %w", err)
-	}
-
-	return n, nil
 }

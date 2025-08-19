@@ -70,8 +70,11 @@ func Tgz(dst string, src string, cfg *config.Config) error {
 	}
 	defer func() { _ = tgzFile.Close() }()
 
-	// 创建 GZIP 写入器
-	gzipWriter, err := gzip.NewWriterLevel(tgzFile, config.GetCompressionLevel(cfg))
+	// 创建通用的压缩验证写入器包装器
+	validatingWriter := utils.NewCompressionValidatingWriter(tgzFile, cfg)
+
+	// 创建 GZIP 写入器（使用带验证的写入器）
+	gzipWriter, err := gzip.NewWriterLevel(validatingWriter, config.GetCompressionLevel(cfg))
 	if err != nil {
 		return fmt.Errorf("创建 GZIP 写入器失败: %w", err)
 	}

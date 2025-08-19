@@ -52,29 +52,6 @@ func ValidateTotalSize(cfg *config.Config, currentTotal, additionalSize int64) e
 	return nil
 }
 
-// ValidateCompressionRatio 验证压缩比（防Zip Bomb攻击）
-//
-// 参数:
-//   - cfg: 压缩器配置
-//   - originalSize: 原始文件大小（字节）
-//   - compressedSize: 压缩后大小（字节）
-//
-// 返回:
-//   - error: 如果压缩比异常，返回错误
-func ValidateCompressionRatio(cfg *config.Config, originalSize, compressedSize int64) error {
-	if !cfg.EnableSizeCheck || compressedSize == 0 {
-		return nil
-	}
-
-	ratio := float64(originalSize) / float64(compressedSize)
-
-	if ratio > cfg.MaxCompressionRatio {
-		return fmt.Errorf("压缩比 %.2f:1 超过安全限制 %.0f:1，可能存在Zip Bomb攻击",
-			ratio, cfg.MaxCompressionRatio)
-	}
-	return nil
-}
-
 // PreCheckDirectorySize 预检查目录总大小
 //
 // 参数:
