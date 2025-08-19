@@ -51,7 +51,7 @@ type Progress struct {
 //   - *Progress: 简单进度显示器
 func New() *Progress {
 	return &Progress{
-		Enabled:  false,           // 是否启用进度显示
+		Enabled:  true,            // 是否启用进度显示
 		BarStyle: types.StyleText, // 进度条样式
 	}
 }

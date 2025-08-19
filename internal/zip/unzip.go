@@ -10,8 +10,6 @@ import (
 	"gitee.com/MM-Q/comprx/config"
 	"gitee.com/MM-Q/comprx/internal/progress"
 	"gitee.com/MM-Q/comprx/internal/utils"
-	"gitee.com/MM-Q/comprx/types"
-	"github.com/schollz/progressbar/v3"
 )
 
 // Unzip 解压缩 ZIP 文件到指定目录
@@ -40,20 +38,20 @@ func Unzip(zipFilePath string, targetDir string, config *config.Config) error {
 	p := progress.New()
 	p.Archive(zipFilePath)
 
-	var bar *progressbar.ProgressBar
-	if p.Enabled && p.BarStyle != types.StyleText {
-		totalSize, err := utils.GetSize(zipFilePath)
-		if err != nil {
-			return fmt.Errorf("获取压缩文件大小失败: %w", err)
-		}
-		bar = p.NewProgressBar(totalSize, "解压")
+	// var bar *progressbar.ProgressBar
+	// if p.Enabled && p.BarStyle != types.StyleText {
+	// 	totalSize, err := utils.GetSize(zipFilePath)
+	// 	if err != nil {
+	// 		return fmt.Errorf("获取压缩文件大小失败: %w", err)
+	// 	}
+	// 	bar = p.NewProgressBar(totalSize, "解压")
 
-		defer func() {
-			if err := progress.CloseBar(bar); err != nil {
-				fmt.Printf("关闭进度条时出错: %v\n", err)
-			}
-		}()
-	}
+	// 	defer func() {
+	// 		if err := progress.CloseBar(bar); err != nil {
+	// 			fmt.Printf("关闭进度条时出错: %v\n", err)
+	// 		}
+	// 	}()
+	// }
 
 	// 遍历 ZIP 文件中的每个文件或目录
 	for _, file := range zipReader.File {
@@ -80,7 +78,7 @@ func Unzip(zipFilePath string, targetDir string, config *config.Config) error {
 			}
 		default: // 处理普通文件
 			p.Inflating(targetPath)
-			if err := extractRegularFileWithWriter(file, targetPath, mode, config, bar); err != nil {
+			if err := extractRegularFileWithWriter(file, targetPath, mode, config); err != nil {
 				return err
 			}
 		}
@@ -150,7 +148,7 @@ func extractSymlink(file *zip.File, targetPath string) error {
 //
 // 返回值:
 //   - error: 操作过程中遇到的错误
-func extractRegularFileWithWriter(file *zip.File, targetPath string, mode os.FileMode, config *config.Config, bar *progressbar.ProgressBar) error {
+func extractRegularFileWithWriter(file *zip.File, targetPath string, mode os.FileMode, config *config.Config) error {
 	// 检查目标文件是否已存在
 	if _, err := os.Stat(targetPath); err == nil {
 		// 文件已存在，检查是否允许覆盖
