@@ -42,8 +42,28 @@ func Unzip(zipFilePath string, targetDir string, config *config.Config) error {
 		return fmt.Errorf("创建目标目录失败: %w", err)
 	}
 
+	// 创建大小跟踪器用于解压过程
+	tracker := utils.NewSizeTracker()
+
 	// 遍历 ZIP 文件中的每个文件或目录
 	for _, file := range zipReader.File {
+		// 验证压缩比（防Zip Bomb攻击）
+		if err := utils.ValidateCompressionRatio(config, 
+			int64(file.UncompressedSize64), 
+			int64(file.CompressedSize64)); err != nil {
+			return fmt.Errorf("文件 %s 压缩比验证失败: %w", file.Name, err)
+		}
+
+		// 验证单个文件大小
+		if err := utils.ValidateFileSize(config, file.Name, int64(file.UncompressedSize64)); err != nil {
+			return fmt.Errorf("文件 %s 大小验证失败: %w", file.Name, err)
+		}
+
+		// 验证并更新累计大小
+		if err := tracker.AddSize(config, int64(file.UncompressedSize64)); err != nil {
+			return fmt.Errorf("累计大小验证失败: %w", err)
+		}
+
 		// 安全的路径验证和拼接
 		targetPath, err := utils.ValidatePathSimple(targetDir, file.Name)
 		if err != nil {
