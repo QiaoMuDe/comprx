@@ -60,65 +60,35 @@ func Tar(dst string, src string, config *config.Config) error {
 		return fmt.Errorf("获取源路径信息失败: %w", err)
 	}
 
+	// 预检查文件/目录大小
+	if srcInfo.IsDir() {
+		// 目录：预检查整个目录的大小
+		if _, err := utils.PreCheckDirectorySize(config, src); err != nil {
+			return err
+		}
+	} else {
+		// 单文件：预检查文件大小
+		if _, err := utils.PreCheckSingleFile(config, src); err != nil {
+			return err
+		}
+	}
+
+	// 创建大小跟踪器
+	sizeTracker := utils.NewSizeTracker()
+
 	// 根据源路径类型处理
 	var tarErr error
 	if srcInfo.IsDir() {
 		// 遍历目录并添加文件到 TAR 包
-		tarErr = walkDirectoryForTar(src, tarWriter)
+		tarErr = walkDirectoryForTarWithValidation(src, tarWriter, config, sizeTracker)
 	} else {
 		// 单文件处理逻辑
-		tarErr = processRegularFile(tarWriter, src, filepath.Base(src), srcInfo)
+		tarErr = processRegularFileWithValidation(tarWriter, src, filepath.Base(src), srcInfo, config, sizeTracker)
 	}
 
 	// 检查是否有错误发生
 	if tarErr != nil {
 		return fmt.Errorf("打包目录到 TAR 失败: %w", tarErr)
-	}
-
-	return nil
-}
-
-// processRegularFile 处理普通文件
-//
-// 参数:
-//   - tarWriter: *tar.Writer - TAR 文件写入器
-//   - path: string - 文件路径
-//   - headerName: string - TAR 文件中的文件名
-//   - info: os.FileInfo - 文件信息
-//
-// 返回值:
-//   - error - 操作过程中遇到的错误
-func processRegularFile(tarWriter *tar.Writer, path, headerName string, info os.FileInfo) error {
-	// 创建文件头
-	header, err := tar.FileInfoHeader(info, "")
-	if err != nil {
-		return fmt.Errorf("处理文件 '%s' 时出错 - 创建 TAR 文件头失败: %w", path, err)
-	}
-	header.Name = headerName // 设置文件名
-
-	// 写入文件头
-	if err := tarWriter.WriteHeader(header); err != nil {
-		return fmt.Errorf("处理文件 '%s' 时出错 - 写入 TAR 文件头失败: %w", path, err)
-	}
-
-	// 打开文件
-	file, err := os.Open(path)
-	if err != nil {
-		return fmt.Errorf("处理文件 '%s' 时出错 - 打开文件失败: %w", path, err)
-	}
-	defer func() { _ = file.Close() }()
-
-	// 获取文件大小
-	fileSize := info.Size()
-
-	// 获取缓冲区大小并创建缓冲区
-	bufferSize := utils.GetBufferSize(fileSize)
-	buffer := utils.GetBuffer(bufferSize)
-	defer utils.PutBuffer(buffer)
-
-	// 复制文件内容到TAR写入器
-	if _, err := io.CopyBuffer(tarWriter, file, buffer); err != nil {
-		return fmt.Errorf("处理文件 '%s' 时出错 - 写入 TAR 文件失败: %w", path, err)
 	}
 
 	return nil
@@ -204,15 +174,17 @@ func processSpecialFile(tarWriter *tar.Writer, headerName string, info os.FileIn
 	return nil
 }
 
-// walkDirectoryForTar 遍历目录并处理文件到TAR包
+// walkDirectoryForTarWithValidation 遍历目录并处理文件到TAR包（带大小验证）
 //
 // 参数:
-//   - src: 源目录路径
-//   - tarWriter: TAR写入器
+//   - src: string - 源目录路径
+//   - tarWriter: *tar.Writer - TAR 文件写入器
+//   - config: *config.Config - 配置
+//   - tracker: *utils.SizeTracker - 大小跟踪器
 //
 // 返回值:
-//   - error: 遍历过程中发生的错误
-func walkDirectoryForTar(src string, tarWriter *tar.Writer) error {
+//   - error - 操作过程中遇到的错误
+func walkDirectoryForTarWithValidation(src string, tarWriter *tar.Writer, config *config.Config, tracker *utils.SizeTracker) error {
 	return filepath.WalkDir(src, func(path string, entry os.DirEntry, err error) error {
 		if err != nil {
 			// 如果不存在则忽略
@@ -239,7 +211,7 @@ func walkDirectoryForTar(src string, tarWriter *tar.Writer) error {
 			if err != nil {
 				return fmt.Errorf("处理文件 '%s' 时出错 - 获取文件信息失败: %w", path, err)
 			}
-			return processRegularFile(tarWriter, path, headerName, info)
+			return processRegularFileWithValidation(tarWriter, path, headerName, info, config, tracker)
 		case entry.IsDir(): // 处理目录
 			info, err := entry.Info()
 			if err != nil {
@@ -260,4 +232,62 @@ func walkDirectoryForTar(src string, tarWriter *tar.Writer) error {
 			return processSpecialFile(tarWriter, headerName, info)
 		}
 	})
+}
+
+// processRegularFileWithValidation 处理普通文件（带大小验证）
+//
+// 参数:
+//   - tarWriter: *tar.Writer - TAR 文件写入器
+//   - path: string - 源路径
+//   - headerName: string - TAR 文件中的文件名
+//   - info: os.FileInfo - 文件信息
+//   - config: *config.Config - 配置
+//   - tracker: *utils.SizeTracker - 大小跟踪器
+//
+// 返回值:
+//   - error - 操作过程中遇到的错误
+func processRegularFileWithValidation(tarWriter *tar.Writer, path, headerName string, info os.FileInfo, config *config.Config, tracker *utils.SizeTracker) error {
+	// 检查单个文件大小
+	if config.EnableSizeCheck && info.Size() > config.MaxFileSize {
+		return fmt.Errorf("文件 %s 大小 %d 字节超过限制 %d 字节", path, info.Size(), config.MaxFileSize)
+	}
+
+	// 更新总大小跟踪
+	if err := tracker.AddSize(config, info.Size()); err != nil {
+		return err
+	}
+
+	// 创建文件头
+	header, err := tar.FileInfoHeader(info, "")
+	if err != nil {
+		return fmt.Errorf("处理文件 '%s' 时出错 - 创建 TAR 文件头失败: %w", path, err)
+	}
+	header.Name = headerName // 设置文件名
+
+	// 写入文件头
+	if err := tarWriter.WriteHeader(header); err != nil {
+		return fmt.Errorf("处理文件 '%s' 时出错 - 写入 TAR 文件头失败: %w", path, err)
+	}
+
+	// 打开文件
+	file, err := os.Open(path)
+	if err != nil {
+		return fmt.Errorf("处理文件 '%s' 时出错 - 打开文件失败: %w", path, err)
+	}
+	defer func() { _ = file.Close() }()
+
+	// 获取文件大小
+	fileSize := info.Size()
+
+	// 获取缓冲区大小并创建缓冲区
+	bufferSize := utils.GetBufferSize(fileSize)
+	buffer := utils.GetBuffer(bufferSize)
+	defer utils.PutBuffer(buffer)
+
+	// 复制文件内容到TAR写入器
+	if _, err := io.CopyBuffer(tarWriter, file, buffer); err != nil {
+		return fmt.Errorf("处理文件 '%s' 时出错 - 写入 TAR 文件失败: %w", path, err)
+	}
+
+	return nil
 }

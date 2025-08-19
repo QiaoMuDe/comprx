@@ -87,8 +87,8 @@ func Tgz(dst string, src string, cfg *config.Config) error {
 	// 根据源路径类型处理
 	var tgzErr error
 	if srcInfo.IsDir() {
-		// 遍历目录并添加文件到 TGZ 包
-		tgzErr = walkDirectoryForTgz(src, tarWriter, cfg, sizeTracker)
+		// 遍历目录并添加文件到 TGZ 包（带大小验证）
+		tgzErr = walkDirectoryForTgzWithValidation(src, tarWriter, cfg, sizeTracker)
 	} else {
 		// 单文件处理逻辑
 		tgzErr = processRegularFileWithValidation(tarWriter, src, filepath.Base(src), srcInfo, cfg, sizeTracker)
@@ -256,7 +256,7 @@ func processSpecialFile(tarWriter *tar.Writer, headerName string, info os.FileIn
 	return nil
 }
 
-// walkDirectoryForTgz 遍历目录并处理文件到TGZ包
+// walkDirectoryForTgzWithValidation 遍历目录并处理文件到TGZ包（带大小验证）
 //
 // 参数:
 //   - src: 源目录路径
@@ -266,7 +266,7 @@ func processSpecialFile(tarWriter *tar.Writer, headerName string, info os.FileIn
 //
 // 返回值:
 //   - error: 遍历过程中发生的错误
-func walkDirectoryForTgz(src string, tarWriter *tar.Writer, cfg *config.Config, sizeTracker *utils.SizeTracker) error {
+func walkDirectoryForTgzWithValidation(src string, tarWriter *tar.Writer, cfg *config.Config, sizeTracker *utils.SizeTracker) error {
 	return filepath.WalkDir(src, func(path string, entry os.DirEntry, err error) error {
 		if err != nil {
 			// 如果不存在则忽略
@@ -293,7 +293,7 @@ func walkDirectoryForTgz(src string, tarWriter *tar.Writer, cfg *config.Config, 
 			if err != nil {
 				return fmt.Errorf("处理文件 '%s' 时出错 - 获取文件信息失败: %w", path, err)
 			}
-			return processRegularFile(tarWriter, path, headerName, info)
+			return processRegularFileWithValidation(tarWriter, path, headerName, info, cfg, sizeTracker)
 		case entry.IsDir(): // 处理目录
 			info, err := entry.Info()
 			if err != nil {
