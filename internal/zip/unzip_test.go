@@ -254,8 +254,8 @@ func TestUnzip_CreateTargetDirectory(t *testing.T) {
 }
 
 func TestUnzip_SymbolicLinks(t *testing.T) {
-	// 在Windows上跳过符号链接测试
-	if os.Getenv("GOOS") == "windows" {
+	// 在Windows上跳过符号链接测试，使用编译时常量
+	if os.PathSeparator == '\\' {
 		t.Skip("跳过Windows上的符号链接测试")
 	}
 
