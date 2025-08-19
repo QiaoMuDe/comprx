@@ -23,7 +23,6 @@ type Config struct {
 	MaxFileSize       int64            // 单个文件最大大小（字节）
 	MaxTotalSize      int64            // 压缩包总大小限制（字节）
 	EnableSizeCheck   bool             // 是否启用大小检查
-	// 移除 MaxCompressionRatio: 压缩比验证在实际使用中不合理
 }
 
 // New 创建新的压缩器配置
