@@ -114,28 +114,64 @@ func EnsureAbsPath(path, pathType string) (string, error) {
 	return absPath, nil
 }
 
-// ValidatePathSimple 路径验证器，用于验证路径是否安全，避免路径穿越攻击
+// ValidatePathSimple 验证文件路径是否安全，防止路径遍历攻击
+// 这是一个简化版本，专注于性能和基本安全检查
 //
 // 参数：
 //   - targetDir: 目标目录
 //   - filePath: 要验证的文件路径
 //
 // 返回值：
-//   - string: 验证后的文件路径
-//   - error: 验证失败的错误信息
+//   - string: 安全的文件路径
+//   - error: 如果路径不安全，则返回错误信息
 func ValidatePathSimple(targetDir, filePath string) (string, error) {
-	// 清理路径
-	cleanPath := filepath.Clean(filePath)
+	// === 第一阶段：检查原始路径中的危险模式 ===
+	// 注意：这些检查必须在filepath.Clean()之前进行，因为Clean会改变路径格式
 
-	// 简单但有效的检查
-	if strings.Contains(cleanPath, "..") || strings.HasPrefix(cleanPath, "/") {
+	// 检查路径遍历攻击（最常见的攻击方式）
+	if strings.Contains(filePath, "..") {
 		return "", fmt.Errorf("不安全的路径: %s", filePath)
 	}
 
-	// 检查路径分隔符异常
+	// 检查协议前缀攻击（如 file:// 等）
+	if strings.Contains(filePath, "://") {
+		return "", fmt.Errorf("不安全的路径: %s", filePath)
+	}
+
+	// === 第二阶段：清理路径并进行进一步检查 ===
+	cleanPath := filepath.Clean(filePath)
+
+	// 检查绝对路径 - Unix风格
+	if strings.HasPrefix(cleanPath, "/") {
+		return "", fmt.Errorf("不安全的路径: %s", filePath)
+	}
+
+	// 检查绝对路径 - Windows风格
+	if len(cleanPath) >= 2 && cleanPath[1] == ':' {
+		return "", fmt.Errorf("不安全的路径: %s", filePath)
+	}
+
+	// 检查UNC路径
+	if strings.HasPrefix(cleanPath, "\\\\") || strings.HasPrefix(cleanPath, "//") {
+		return "", fmt.Errorf("不安全的路径: %s", filePath)
+	}
+
+	// 检查Windows特殊路径前缀
+	if strings.HasPrefix(cleanPath, "\\\\?\\") || strings.HasPrefix(cleanPath, "//?/") {
+		return "", fmt.Errorf("不安全的路径: %s", filePath)
+	}
+
+	// 双重检查：确保Clean后没有残留的上级目录引用
+	if strings.Contains(cleanPath, "..") {
+		return "", fmt.Errorf("不安全的路径: %s", filePath)
+	}
+
+	// 检查可疑的路径模式 - 隐藏文件路径
 	if strings.Contains(cleanPath, string(os.PathSeparator)+".") {
 		return "", fmt.Errorf("可疑路径: %s", filePath)
 	}
 
-	return filepath.Join(targetDir, cleanPath), nil
+	// === 第三阶段：构建最终安全路径 ===
+	finalPath := filepath.Join(targetDir, cleanPath)
+	return finalPath, nil
 }
