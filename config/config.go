@@ -2,6 +2,8 @@ package config
 
 import (
 	"compress/gzip"
+
+	"gitee.com/MM-Q/comprx/internal/progress"
 )
 
 // CompressionLevel 压缩等级类型
@@ -18,8 +20,9 @@ const (
 
 // Config 压缩器配置
 type Config struct {
-	CompressionLevel  CompressionLevel // 压缩等级
-	OverwriteExisting bool             // 是否覆盖已存在的文件
+	CompressionLevel  CompressionLevel   // 压缩等级
+	OverwriteExisting bool               // 是否覆盖已存在的文件
+	Progress          *progress.Progress // 进度显示
 }
 
 // New 创建新的压缩器配置
@@ -27,6 +30,7 @@ func New() *Config {
 	return &Config{
 		CompressionLevel:  CompressionLevelDefault, // 默认压缩等级
 		OverwriteExisting: false,                   // 默认不覆盖已存在文件
+		Progress:          progress.New(),          // 创建进度显示
 	}
 }
 

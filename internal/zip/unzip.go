@@ -8,7 +8,6 @@ import (
 	"path/filepath"
 
 	"gitee.com/MM-Q/comprx/config"
-	"gitee.com/MM-Q/comprx/internal/progress"
 	"gitee.com/MM-Q/comprx/internal/utils"
 )
 
@@ -34,9 +33,8 @@ func Unzip(zipFilePath string, targetDir string, config *config.Config) error {
 		return fmt.Errorf("创建目标目录失败: %w", err)
 	}
 
-	// 创建进度显示器
-	p := progress.New()
-	p.Archive(zipFilePath)
+	// 打印压缩文件信息
+	config.Progress.Archive(zipFilePath)
 
 	// var bar *progressbar.ProgressBar
 	// if p.Enabled && p.BarStyle != types.StyleText {
@@ -67,17 +65,17 @@ func Unzip(zipFilePath string, targetDir string, config *config.Config) error {
 		// 使用 switch 语句处理不同类型的文件
 		switch {
 		case mode.IsDir(): // 处理目录
-			p.Creating(targetPath)
+			config.Progress.Creating(targetPath)
 			if err := extractDirectory(targetPath, file.Name); err != nil {
 				return err
 			}
 		case mode&os.ModeSymlink != 0: // 处理软链接
-			p.Inflating(targetPath)
+			config.Progress.Inflating(targetPath)
 			if err := extractSymlink(file, targetPath); err != nil {
 				return err
 			}
 		default: // 处理普通文件
-			p.Inflating(targetPath)
+			config.Progress.Inflating(targetPath)
 			if err := extractRegularFileWithWriter(file, targetPath, mode, config); err != nil {
 				return err
 			}

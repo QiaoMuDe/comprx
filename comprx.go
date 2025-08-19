@@ -8,7 +8,6 @@ import (
 	"gitee.com/MM-Q/comprx/config"
 	"gitee.com/MM-Q/comprx/internal/bzip2"
 	"gitee.com/MM-Q/comprx/internal/gzip"
-	"gitee.com/MM-Q/comprx/internal/progress"
 	"gitee.com/MM-Q/comprx/internal/tar"
 	"gitee.com/MM-Q/comprx/internal/tgz"
 	"gitee.com/MM-Q/comprx/internal/utils"
@@ -18,8 +17,7 @@ import (
 
 // Comprx 压缩器
 type Comprx struct {
-	config   *config.Config     // 压缩器配置
-	progress *progress.Progress // 进度显示
+	config *config.Config // 压缩器配置
 }
 
 // ==============================================
@@ -38,8 +36,7 @@ var New = NewComprx
 //   - *Comprx: 压缩器实例
 func NewComprx() *Comprx {
 	return &Comprx{
-		config:   config.New(),
-		progress: progress.New(),
+		config: config.New(),
 	}
 }
 
@@ -66,8 +63,8 @@ func (c *Comprx) WithProgressAndStyle(enabled bool, style string) *Comprx {
 //   - enabled: 是否启用进度条
 //   - style: 进度条样式
 func (c *Comprx) SetProgressAndStyle(enabled bool, style string) {
-	c.progress.Enabled = enabled
-	c.progress.BarStyle = style
+	c.config.Progress.Enabled = enabled
+	c.config.Progress.BarStyle = style
 }
 
 // WithOverwriteExisting 设置是否覆盖已存在的文件
