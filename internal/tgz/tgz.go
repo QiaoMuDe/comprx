@@ -31,6 +31,25 @@ func Tgz(dst string, src string, cfg *config.Config) error {
 		return absErr
 	}
 
+	// 检查源路径是文件还是目录，并进行大小预检查
+	srcInfo, err := os.Stat(src)
+	if err != nil {
+		return fmt.Errorf("获取源路径信息失败: %w", err)
+	}
+
+	// 根据源路径类型进行大小预检查
+	if srcInfo.IsDir() {
+		// 预检查目录总大小
+		if _, err := utils.PreCheckDirectorySize(cfg, src); err != nil {
+			return fmt.Errorf("目录大小预检查失败: %w", err)
+		}
+	} else {
+		// 预检查单个文件大小
+		if _, err := utils.PreCheckSingleFile(cfg, src); err != nil {
+			return fmt.Errorf("文件大小预检查失败: %w", err)
+		}
+	}
+
 	// 检查目标文件是否已存在
 	if _, err := os.Stat(dst); err == nil {
 		// 文件已存在，检查是否允许覆盖
@@ -62,20 +81,17 @@ func Tgz(dst string, src string, cfg *config.Config) error {
 	tarWriter := tar.NewWriter(gzipWriter)
 	defer func() { _ = tarWriter.Close() }()
 
-	// 检查源路径是文件还是目录
-	srcInfo, err := os.Stat(src)
-	if err != nil {
-		return fmt.Errorf("获取源路径信息失败: %w", err)
-	}
+	// 创建大小跟踪器
+	sizeTracker := utils.NewSizeTracker()
 
 	// 根据源路径类型处理
 	var tgzErr error
 	if srcInfo.IsDir() {
 		// 遍历目录并添加文件到 TGZ 包
-		tgzErr = walkDirectoryForTgz(src, tarWriter)
+		tgzErr = walkDirectoryForTgz(src, tarWriter, cfg, sizeTracker)
 	} else {
 		// 单文件处理逻辑
-		tgzErr = processRegularFile(tarWriter, src, filepath.Base(src), srcInfo)
+		tgzErr = processRegularFileWithValidation(tarWriter, src, filepath.Base(src), srcInfo, cfg, sizeTracker)
 	}
 
 	// 检查是否有错误发生
@@ -84,6 +100,34 @@ func Tgz(dst string, src string, cfg *config.Config) error {
 	}
 
 	return nil
+}
+
+// processRegularFileWithValidation 处理普通文件（带大小验证）
+//
+// 参数:
+//   - tarWriter: *tar.Writer - TAR 文件写入器
+//   - path: string - 文件路径
+//   - headerName: string - TAR 文件中的文件名
+//   - info: os.FileInfo - 文件信息
+//   - cfg: 压缩配置
+//   - sizeTracker: 大小跟踪器
+//
+// 返回值:
+//   - error - 操作过程中遇到的错误
+func processRegularFileWithValidation(tarWriter *tar.Writer, path, headerName string, info os.FileInfo, cfg *config.Config, sizeTracker *utils.SizeTracker) error {
+	fileSize := info.Size()
+
+	// 验证单个文件大小
+	if err := utils.ValidateFileSize(cfg, path, fileSize); err != nil {
+		return err
+	}
+
+	// 验证累计大小
+	if err := sizeTracker.AddSize(cfg, fileSize); err != nil {
+		return err
+	}
+
+	return processRegularFile(tarWriter, path, headerName, info)
 }
 
 // processRegularFile 处理普通文件
@@ -217,10 +261,12 @@ func processSpecialFile(tarWriter *tar.Writer, headerName string, info os.FileIn
 // 参数:
 //   - src: 源目录路径
 //   - tarWriter: TAR写入器
+//   - cfg: 压缩配置
+//   - sizeTracker: 大小跟踪器
 //
 // 返回值:
 //   - error: 遍历过程中发生的错误
-func walkDirectoryForTgz(src string, tarWriter *tar.Writer) error {
+func walkDirectoryForTgz(src string, tarWriter *tar.Writer, cfg *config.Config, sizeTracker *utils.SizeTracker) error {
 	return filepath.WalkDir(src, func(path string, entry os.DirEntry, err error) error {
 		if err != nil {
 			// 如果不存在则忽略

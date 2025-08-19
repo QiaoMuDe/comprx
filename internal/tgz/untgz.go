@@ -12,6 +12,30 @@ import (
 	"gitee.com/MM-Q/comprx/internal/utils"
 )
 
+// compressionRatioValidator 压缩比验证器，包装GZIP读取器
+type compressionRatioValidator struct {
+	reader           io.Reader      // 被包装的读取器
+	config           *config.Config // 解压配置
+	compressedSize   int64          // 压缩文件大小
+	uncompressedSize int64          // 解压后文件大小
+}
+
+// Read 实现io.Reader接口，在读取过程中验证压缩比
+func (v *compressionRatioValidator) Read(p []byte) (n int, err error) {
+	n, err = v.reader.Read(p)
+	if n > 0 {
+		v.uncompressedSize += int64(n)
+
+		// 验证压缩比（每读取一定量数据后检查一次）
+		if v.uncompressedSize%(1024*1024) == 0 || err == io.EOF { // 每1MB检查一次，或在文件结束时检查
+			if validateErr := utils.ValidateCompressionRatio(v.config, v.compressedSize, v.uncompressedSize); validateErr != nil {
+				return n, validateErr
+			}
+		}
+	}
+	return n, err
+}
+
 // Untgz 解压缩 TGZ 文件到指定目录
 //
 // 参数:
@@ -38,6 +62,13 @@ func Untgz(tgzFilePath string, targetDir string, config *config.Config) error {
 	}
 	defer func() { _ = tgzFile.Close() }()
 
+	// 获取压缩文件大小用于压缩比验证
+	tgzFileInfo, err := tgzFile.Stat()
+	if err != nil {
+		return fmt.Errorf("获取TGZ文件信息失败: %w", err)
+	}
+	compressedSize := tgzFileInfo.Size()
+
 	// 创建 GZIP 读取器
 	gzipReader, err := gzip.NewReader(tgzFile)
 	if err != nil {
@@ -45,13 +76,24 @@ func Untgz(tgzFilePath string, targetDir string, config *config.Config) error {
 	}
 	defer func() { _ = gzipReader.Close() }()
 
+	// 创建带压缩比验证的读取器包装器
+	validatingReader := &compressionRatioValidator{
+		reader:           gzipReader,
+		config:           config,
+		compressedSize:   compressedSize,
+		uncompressedSize: 0,
+	}
+
 	// 创建 TAR 读取器
-	tarReader := tar.NewReader(gzipReader)
+	tarReader := tar.NewReader(validatingReader)
 
 	// 检查目标目录是否存在, 如果不存在, 则创建
 	if err := utils.EnsureDir(targetDir); err != nil {
 		return fmt.Errorf("创建目标目录失败: %w", err)
 	}
+
+	// 创建大小跟踪器
+	sizeTracker := utils.NewSizeTracker()
 
 	// 遍历 TAR 文件中的每个文件或目录
 	for {
@@ -76,7 +118,7 @@ func Untgz(tgzFilePath string, targetDir string, config *config.Config) error {
 				return err
 			}
 		case tar.TypeReg: // 处理普通文件
-			if err := extractRegularFile(tarReader, targetPath, header, config); err != nil {
+			if err := extractRegularFileWithValidation(tarReader, targetPath, header, config, sizeTracker); err != nil {
 				return err
 			}
 		case tar.TypeSymlink: // 处理符号链接
@@ -109,6 +151,36 @@ func extractDirectory(targetPath, fileName string) error {
 		return fmt.Errorf("处理目录 '%s' 时出错 - 创建目录失败: %w", fileName, err)
 	}
 	return nil
+}
+
+// extractRegularFileWithValidation 处理普通文件解压（带大小验证）
+//
+// 参数:
+//   - tarReader: TAR读取器
+//   - targetPath: 目标路径
+//   - header: TAR文件头
+//   - config: 解压配置
+//   - sizeTracker: 大小跟踪器
+//
+// 返回值:
+//   - error: 操作过程中遇到的错误
+func extractRegularFileWithValidation(tarReader *tar.Reader, targetPath string, header *tar.Header, config *config.Config, sizeTracker *utils.SizeTracker) error {
+	fileSize := header.Size
+
+	// 验证单个文件大小
+	if err := utils.ValidateFileSize(config, header.Name, fileSize); err != nil {
+		return err
+	}
+
+	// 验证累计大小
+	if err := sizeTracker.AddSize(config, fileSize); err != nil {
+		return err
+	}
+
+	// 压缩比验证已在GZIP读取器层面通过compressionRatioValidator进行
+	// TAR层面只需要验证文件大小和累计大小
+
+	return extractRegularFile(tarReader, targetPath, header, config)
 }
 
 // extractRegularFile 处理普通文件解压

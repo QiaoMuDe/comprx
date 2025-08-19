@@ -216,7 +216,7 @@ func TestPreCheckSingleFile(t *testing.T) {
 	if err != nil {
 		t.Fatalf("创建临时目录失败: %v", err)
 	}
-	defer os.RemoveAll(tempDir)
+	defer func() { _ = os.RemoveAll(tempDir) }()
 
 	// 创建测试文件
 	testFile := filepath.Join(tempDir, "test.txt")
@@ -287,14 +287,14 @@ func TestPreCheckDirectorySize(t *testing.T) {
 	if err != nil {
 		t.Fatalf("创建临时目录失败: %v", err)
 	}
-	defer os.RemoveAll(tempDir)
+	defer func() { _ = os.RemoveAll(tempDir) }()
 
 	// 创建测试文件结构
 	files := map[string]int{
-		"file1.txt":         500,
-		"file2.txt":         300,
-		"subdir/file3.txt":  200,
-		"subdir/file4.txt":  400,
+		"file1.txt":        500,
+		"file2.txt":        300,
+		"subdir/file3.txt": 200,
+		"subdir/file4.txt": 400,
 	}
 
 	for filePath, size := range files {
@@ -323,8 +323,8 @@ func TestPreCheckDirectorySize(t *testing.T) {
 			name: "正常目录",
 			config: &config.Config{
 				EnableSizeCheck: true,
-				MaxFileSize:     1000,  // 1KB 单文件限制
-				MaxTotalSize:    2000,  // 2KB 总大小限制
+				MaxFileSize:     1000, // 1KB 单文件限制
+				MaxTotalSize:    2000, // 2KB 总大小限制
 			},
 			dirPath:     tempDir,
 			expectError: false,
@@ -333,8 +333,8 @@ func TestPreCheckDirectorySize(t *testing.T) {
 			name: "总大小超限",
 			config: &config.Config{
 				EnableSizeCheck: true,
-				MaxFileSize:     1000,  // 1KB 单文件限制
-				MaxTotalSize:    1000,  // 1KB 总大小限制（实际总大小1400）
+				MaxFileSize:     1000, // 1KB 单文件限制
+				MaxTotalSize:    1000, // 1KB 总大小限制（实际总大小1400）
 			},
 			dirPath:     tempDir,
 			expectError: true,
@@ -343,7 +343,7 @@ func TestPreCheckDirectorySize(t *testing.T) {
 			name: "单文件超限",
 			config: &config.Config{
 				EnableSizeCheck: true,
-				MaxFileSize:     400,   // 400B 单文件限制（file1.txt为500B）
+				MaxFileSize:     400, // 400B 单文件限制（file1.txt为500B）
 				MaxTotalSize:    2000,
 			},
 			dirPath:     tempDir,

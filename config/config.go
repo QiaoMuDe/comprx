@@ -18,12 +18,12 @@ const (
 
 // Config 压缩器配置
 type Config struct {
-	CompressionLevel     CompressionLevel // 压缩等级
-	OverwriteExisting    bool             // 是否覆盖已存在的文件
-	MaxFileSize          int64            // 单个文件最大大小（字节）
-	MaxTotalSize         int64            // 压缩包总大小限制（字节）
-	EnableSizeCheck      bool             // 是否启用大小检查
-	MaxCompressionRatio  float64          // 最大压缩比限制（防Zip Bomb攻击）
+	CompressionLevel    CompressionLevel // 压缩等级
+	OverwriteExisting   bool             // 是否覆盖已存在的文件
+	MaxFileSize         int64            // 单个文件最大大小（字节）
+	MaxTotalSize        int64            // 压缩包总大小限制（字节）
+	EnableSizeCheck     bool             // 是否启用大小检查
+	MaxCompressionRatio float64          // 最大压缩比限制（防Zip Bomb攻击）
 }
 
 // New 创建新的压缩器配置
@@ -31,10 +31,10 @@ func New() *Config {
 	return &Config{
 		CompressionLevel:    CompressionLevelDefault, // 默认压缩等级
 		OverwriteExisting:   false,                   // 默认不覆盖已存在文件
-		MaxFileSize:         100 * 1024 * 1024,      // 默认单文件最大100MB
-		MaxTotalSize:        5120 * 1024 * 1024,     // 默认总大小最大5GB
+		MaxFileSize:         100 * 1024 * 1024,       // 默认单文件最大100MB
+		MaxTotalSize:        5120 * 1024 * 1024,      // 默认总大小最大5GB
 		EnableSizeCheck:     true,                    // 默认启用大小检查
-		MaxCompressionRatio: 500.0,                  // 默认最大压缩比500:1
+		MaxCompressionRatio: 500.0,                   // 默认最大压缩比500:1
 	}
 }
 

@@ -48,8 +48,8 @@ func Unzip(zipFilePath string, targetDir string, config *config.Config) error {
 	// 遍历 ZIP 文件中的每个文件或目录
 	for _, file := range zipReader.File {
 		// 验证压缩比（防Zip Bomb攻击）
-		if err := utils.ValidateCompressionRatio(config, 
-			int64(file.UncompressedSize64), 
+		if err := utils.ValidateCompressionRatio(config,
+			int64(file.UncompressedSize64),
 			int64(file.CompressedSize64)); err != nil {
 			return fmt.Errorf("文件 %s 压缩比验证失败: %w", file.Name, err)
 		}
