@@ -38,6 +38,18 @@ func Unbz2(bz2FilePath string, targetPath string, config *config.Config) error {
 	}
 	defer func() { _ = bz2File.Close() }()
 
+	// 获取BZIP2文件信息用于预验证
+	bz2Info, err := bz2File.Stat()
+	if err != nil {
+		return fmt.Errorf("获取BZIP2文件信息失败: %w", err)
+	}
+
+	// 预验证BZIP2文件大小（检查输入文件合理性）
+	if config.EnableSizeCheck && bz2Info.Size() > config.MaxTotalSize {
+		return fmt.Errorf("BZIP2文件大小 %s 超过处理限制 %s",
+			utils.FormatFileSize(bz2Info.Size()), utils.FormatFileSize(config.MaxTotalSize))
+	}
+
 	// 创建 BZIP2 读取器
 	bz2Reader := bzip2.NewReader(bz2File)
 
@@ -75,21 +87,68 @@ func Unbz2(bz2FilePath string, targetPath string, config *config.Config) error {
 	}
 	defer func() { _ = targetFile.Close() }()
 
-	// 获取BZIP2文件大小来估算缓冲区大小
-	bz2Info, err := bz2File.Stat()
-	if err != nil {
-		return fmt.Errorf("获取BZIP2文件信息失败: %w", err)
-	}
+	// 使用之前获取的bz2Info来估算缓冲区大小
 
 	// 获取缓冲区大小并创建缓冲区
 	bufferSize := utils.GetBufferSize(bz2Info.Size())
 	buffer := utils.GetBuffer(bufferSize)
 	defer utils.PutBuffer(buffer)
 
-	// 解压缩文件内容
-	if _, err := io.CopyBuffer(targetFile, bz2Reader, buffer); err != nil {
+	// 创建大小跟踪器（用于解压过程中的大小检查）
+	tracker := utils.NewSizeTracker()
+
+	// 创建带验证的写入器包装器
+	validatingWriter := &validatingWriter{
+		writer:         targetFile,
+		config:         config,
+		compressedSize: bz2Info.Size(),
+		tracker:        tracker,
+	}
+
+	// 解压缩文件内容（使用带验证的写入器）
+	if _, err := io.CopyBuffer(validatingWriter, bz2Reader, buffer); err != nil {
 		return fmt.Errorf("解压缩文件失败: %w", err)
 	}
 
 	return nil
+}
+
+// validatingWriter 带验证功能的写入器包装器
+type validatingWriter struct {
+	writer         io.Writer
+	config         *config.Config
+	compressedSize int64
+	totalWritten   int64
+	tracker        *utils.SizeTracker
+}
+
+// Write 实现io.Writer接口，在写入时进行安全验证
+func (vw *validatingWriter) Write(p []byte) (n int, err error) {
+	// 写入数据
+	n, err = vw.writer.Write(p)
+	if err != nil {
+		return n, err
+	}
+
+	// 更新总写入大小
+	vw.totalWritten += int64(n)
+
+	// 验证解压后的大小是否超过单文件限制
+	if vw.config.EnableSizeCheck && vw.totalWritten > vw.config.MaxFileSize {
+		return n, fmt.Errorf("解压后文件大小 %s 超过单文件限制 %s",
+			utils.FormatFileSize(vw.totalWritten), utils.FormatFileSize(vw.config.MaxFileSize))
+	}
+
+	// 验证解压后的大小是否超过总大小限制
+	if vw.config.EnableSizeCheck && vw.totalWritten > vw.config.MaxTotalSize {
+		return n, fmt.Errorf("解压后文件大小 %s 超过总大小限制 %s",
+			utils.FormatFileSize(vw.totalWritten), utils.FormatFileSize(vw.config.MaxTotalSize))
+	}
+
+	// 验证压缩比（防止Zip Bomb攻击）
+	if err := utils.ValidateCompressionRatio(vw.config, vw.totalWritten, vw.compressedSize); err != nil {
+		return n, fmt.Errorf("压缩比验证失败: %w", err)
+	}
+
+	return n, nil
 }

@@ -84,13 +84,54 @@ func Unzip(zipFilePath string, targetDir string, config *config.Config) error {
 				return err
 			}
 		default: // 处理普通文件
-			if err := extractRegularFile(file, targetPath, mode, config); err != nil {
+			if err := extractRegularFileWithValidation(file, targetPath, mode, config, tracker); err != nil {
 				return err
 			}
 		}
 	}
 
 	return nil
+}
+
+// zipValidatingWriter 带验证功能的写入器包装器（用于ZIP解压）
+type zipValidatingWriter struct {
+	writer           io.Writer
+	config           *config.Config
+	compressedSize   int64
+	uncompressedSize int64
+	totalWritten     int64
+	tracker          *utils.SizeTracker
+}
+
+// Write 实现io.Writer接口，在写入时进行安全验证
+func (vw *zipValidatingWriter) Write(p []byte) (n int, err error) {
+	// 写入数据
+	n, err = vw.writer.Write(p)
+	if err != nil {
+		return n, err
+	}
+
+	// 更新总写入大小
+	vw.totalWritten += int64(n)
+
+	// 验证解压后的大小是否超过预期（基于ZIP文件头信息）
+	if vw.totalWritten > vw.uncompressedSize {
+		return n, fmt.Errorf("解压数据大小 %s 超过ZIP文件头声明的大小 %s",
+			utils.FormatFileSize(vw.totalWritten), utils.FormatFileSize(vw.uncompressedSize))
+	}
+
+	// 验证解压后的大小是否超过单文件限制
+	if vw.config.EnableSizeCheck && vw.totalWritten > vw.config.MaxFileSize {
+		return n, fmt.Errorf("解压后文件大小 %s 超过单文件限制 %s",
+			utils.FormatFileSize(vw.totalWritten), utils.FormatFileSize(vw.config.MaxFileSize))
+	}
+
+	// 验证压缩比（防止Zip Bomb攻击）
+	if err := utils.ValidateCompressionRatio(vw.config, vw.totalWritten, vw.compressedSize); err != nil {
+		return n, fmt.Errorf("压缩比验证失败: %w", err)
+	}
+
+	return n, nil
 }
 
 // extractDirectory 处理目录解压
@@ -144,6 +185,30 @@ func extractSymlink(file *zip.File, targetPath string) error {
 	return nil
 }
 
+// extractRegularFileWithValidation 处理普通文件解压（带实时验证）
+//
+// 参数:
+//   - file: ZIP文件条目
+//   - targetPath: 目标路径
+//   - mode: 文件模式
+//   - config: 解压配置
+//   - tracker: 大小跟踪器
+//
+// 返回值:
+//   - error: 操作过程中遇到的错误
+func extractRegularFileWithValidation(file *zip.File, targetPath string, mode os.FileMode, config *config.Config, tracker *utils.SizeTracker) error {
+	// 创建带验证的写入器包装器
+	return extractRegularFileWithWriter(file, targetPath, mode, config, func(fileWriter io.Writer) io.Writer {
+		return &zipValidatingWriter{
+			writer:           fileWriter,
+			config:           config,
+			compressedSize:   int64(file.CompressedSize64),
+			uncompressedSize: int64(file.UncompressedSize64),
+			tracker:          tracker,
+		}
+	})
+}
+
 // extractRegularFile 处理普通文件解压
 //
 // 参数:
@@ -155,6 +220,23 @@ func extractSymlink(file *zip.File, targetPath string) error {
 // 返回值:
 //   - error: 操作过程中遇到的错误
 func extractRegularFile(file *zip.File, targetPath string, mode os.FileMode, config *config.Config) error {
+	return extractRegularFileWithWriter(file, targetPath, mode, config, func(fileWriter io.Writer) io.Writer {
+		return fileWriter // 不使用验证包装器
+	})
+}
+
+// extractRegularFileWithWriter 处理普通文件解压的通用实现
+//
+// 参数:
+//   - file: ZIP文件条目
+//   - targetPath: 目标路径
+//   - mode: 文件模式
+//   - config: 解压配置
+//   - writerWrapper: 写入器包装函数
+//
+// 返回值:
+//   - error: 操作过程中遇到的错误
+func extractRegularFileWithWriter(file *zip.File, targetPath string, mode os.FileMode, config *config.Config, writerWrapper func(io.Writer) io.Writer) error {
 	// 检查目标文件是否已存在
 	if _, err := os.Stat(targetPath); err == nil {
 		// 文件已存在，检查是否允许覆盖
@@ -190,6 +272,9 @@ func extractRegularFile(file *zip.File, targetPath string, mode os.FileMode, con
 	}
 	defer func() { _ = fileWriter.Close() }()
 
+	// 使用包装器包装写入器
+	wrappedWriter := writerWrapper(fileWriter)
+
 	// 打开 ZIP 文件中的文件
 	zipFileReader, err := file.Open()
 	if err != nil {
@@ -204,8 +289,8 @@ func extractRegularFile(file *zip.File, targetPath string, mode os.FileMode, con
 	buffer := utils.GetBuffer(bufferSize)
 	defer utils.PutBuffer(buffer)
 
-	// 将文件内容写入目标文件
-	if _, err := io.CopyBuffer(fileWriter, zipFileReader, buffer); err != nil {
+	// 将文件内容写入目标文件（使用包装后的写入器）
+	if _, err := io.CopyBuffer(wrappedWriter, zipFileReader, buffer); err != nil {
 		return fmt.Errorf("处理文件 '%s' 时出错 - 写入文件失败: %w", file.Name, err)
 	}
 
