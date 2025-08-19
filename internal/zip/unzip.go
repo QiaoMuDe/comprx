@@ -200,16 +200,16 @@ func extractRegularFileWithWriter(file *zip.File, targetPath string, mode os.Fil
 	buffer := utils.GetBuffer(bufferSize)
 	defer utils.PutBuffer(buffer)
 
-	// 创建多写入器
-	var multiWriter io.Writer
-	if bar != nil {
-		multiWriter = io.MultiWriter(fileWriter, bar)
-	} else {
-		multiWriter = fileWriter
-	}
+	// // 创建多写入器
+	// var multiWriter io.Writer
+	// if bar != nil {
+	// 	multiWriter = io.MultiWriter(fileWriter, bar)
+	// } else {
+	// 	multiWriter = fileWriter
+	// }
 
 	// 将文件内容写入目标文件（使用包装后的写入器）
-	if _, err := io.CopyBuffer(multiWriter, zipFileReader, buffer); err != nil {
+	if _, err := io.CopyBuffer(fileWriter, zipFileReader, buffer); err != nil {
 		return fmt.Errorf("处理文件 '%s' 时出错 - 写入文件失败: %w", file.Name, err)
 	}
 
