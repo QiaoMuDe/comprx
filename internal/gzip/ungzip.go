@@ -50,7 +50,12 @@ func Ungzip(gzipFilePath string, targetPath string, config *config.Config) error
 		if targetStat.IsDir() {
 			// 目标是目录，生成文件名
 			if gzipReader.Name != "" {
-				targetPath = filepath.Join(targetPath, gzipReader.Name)
+				// 直接验证 GZIP 头部的文件名，并与目标目录合并
+				validatedPath, err := utils.ValidatePathSimple(targetPath, gzipReader.Name)
+				if err != nil {
+					return fmt.Errorf("GZIP文件头包含不安全的文件名: %w", err)
+				}
+				targetPath = validatedPath
 			} else {
 				// 如果GZIP文件头中没有原始文件名，则去掉.gz扩展名
 				baseName := filepath.Base(gzipFilePath)

@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 )
 
 // Exists 检查指定路径的文件或目录是否存在
@@ -111,4 +112,30 @@ func EnsureAbsPath(path, pathType string) (string, error) {
 		return "", fmt.Errorf("转换 %s 为绝对路径失败: %w", pathType, err)
 	}
 	return absPath, nil
+}
+
+// ValidatePathSimple 路径验证器，用于验证路径是否安全，避免路径穿越攻击
+//
+// 参数：
+//   - targetDir: 目标目录
+//   - filePath: 要验证的文件路径
+//
+// 返回值：
+//   - string: 验证后的文件路径
+//   - error: 验证失败的错误信息
+func ValidatePathSimple(targetDir, filePath string) (string, error) {
+	// 清理路径
+	cleanPath := filepath.Clean(filePath)
+
+	// 简单但有效的检查
+	if strings.Contains(cleanPath, "..") || strings.HasPrefix(cleanPath, "/") {
+		return "", fmt.Errorf("不安全的路径: %s", filePath)
+	}
+
+	// 检查路径分隔符异常
+	if strings.Contains(cleanPath, string(os.PathSeparator)+".") {
+		return "", fmt.Errorf("可疑路径: %s", filePath)
+	}
+
+	return filepath.Join(targetDir, cleanPath), nil
 }

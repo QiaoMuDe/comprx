@@ -44,8 +44,11 @@ func Unzip(zipFilePath string, targetDir string, config *config.Config) error {
 
 	// 遍历 ZIP 文件中的每个文件或目录
 	for _, file := range zipReader.File {
-		// 获取目标路径
-		targetPath := filepath.Join(targetDir, file.Name)
+		// 安全的路径验证和拼接
+		targetPath, err := utils.ValidatePathSimple(targetDir, file.Name)
+		if err != nil {
+			return fmt.Errorf("处理文件 '%s' 时路径验证失败: %w", file.Name, err)
+		}
 
 		// 获取文件的模式
 		mode := file.Mode()

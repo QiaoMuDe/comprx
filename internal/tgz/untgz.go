@@ -63,8 +63,11 @@ func Untgz(tgzFilePath string, targetDir string, config *config.Config) error {
 			return fmt.Errorf("读取 TAR 文件头失败: %w", err)
 		}
 
-		// 获取目标路径
-		targetPath := filepath.Join(targetDir, header.Name)
+		// 安全的路径验证和拼接
+		targetPath, err := utils.ValidatePathSimple(targetDir, header.Name)
+		if err != nil {
+			return fmt.Errorf("处理文件 '%s' 时路径验证失败: %w", header.Name, err)
+		}
 
 		// 使用 switch 语句处理不同类型的文件
 		switch header.Typeflag {
