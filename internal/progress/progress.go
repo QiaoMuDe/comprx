@@ -48,11 +48,11 @@ func IsSupportedStyle(style string) bool {
 
 // Progress 控制台进度显示器
 type Progress struct {
-	enabled  bool   // 是否启用进度显示
-	barStyle string // 进度条样式
+	Enabled  bool   // 是否启用进度显示
+	BarStyle string // 进度条样式
 }
 
-// NewProgress 创建简单进度显示器
+// New 创建进度显示器
 //
 // 参数:
 //   - enabled: 是否启用进度显示
@@ -60,15 +60,10 @@ type Progress struct {
 //
 // 返回:
 //   - *Progress: 简单进度显示器
-func NewProgress(enabled bool, barStyle string) *Progress {
-	// 检查样式是否支持,如果不支持则使用默认样式
-	if !IsSupportedStyle(barStyle) {
-		barStyle = StyleText
-	}
-
+func New() *Progress {
 	return &Progress{
-		enabled:  enabled,  // 是否启用进度显示
-		barStyle: barStyle, // 进度条样式
+		Enabled:  false,     // 是否启用进度显示
+		BarStyle: StyleText, // 进度条样式
 	}
 }
 
@@ -77,7 +72,7 @@ func NewProgress(enabled bool, barStyle string) *Progress {
 // 返回:
 //   - bool: 是否启用
 func (s *Progress) IsEnabled() bool {
-	return s.enabled
+	return s.Enabled
 }
 
 // Archive 显示压缩文件信息
@@ -85,7 +80,9 @@ func (s *Progress) IsEnabled() bool {
 // 参数:
 //   - archivePath: 压缩文件路径
 func (s *Progress) Archive(archivePath string) {
-	if !s.enabled {
+	// 如果不启用进度显示, 则直接返回
+	// 如果进度条样式不是文本样式, 则直接返回
+	if !s.Enabled || s.BarStyle != StyleText {
 		return
 	}
 	fmt.Printf("%s %s\n", labelArchive, filepath.Base(archivePath))
@@ -96,7 +93,7 @@ func (s *Progress) Archive(archivePath string) {
 // 参数:
 //   - filePath: 文件路径
 func (s *Progress) Compressing(filePath string) {
-	if !s.enabled {
+	if !s.Enabled || s.BarStyle != StyleText {
 		return
 	}
 	fmt.Printf("%s %s\n", labelCompressing, filePath)
@@ -107,7 +104,7 @@ func (s *Progress) Compressing(filePath string) {
 // 参数:
 //   - filePath: 文件路径
 func (s *Progress) Inflating(filePath string) {
-	if !s.enabled {
+	if !s.Enabled || s.BarStyle != StyleText {
 		return
 	}
 	fmt.Printf("%s %s\n", labelInflating, filePath)
@@ -118,18 +115,18 @@ func (s *Progress) Inflating(filePath string) {
 // 参数:
 //   - dirPath: 目录路径
 func (s *Progress) Creating(dirPath string) {
-	if !s.enabled {
+	if !s.Enabled || s.BarStyle != StyleText {
 		return
 	}
 	fmt.Printf("%s %s\n", labelCreating, dirPath)
 }
 
-// Extracting 显示提取文件（TAR）
+// Extracting 显示提取文件(TAR)
 //
 // 参数:
 //   - filePath: 文件路径
 func (s *Progress) Extracting(filePath string) {
-	if !s.enabled {
+	if !s.Enabled || s.BarStyle != StyleText {
 		return
 	}
 	fmt.Printf("%s %s\n", labelExtracting, filePath)
@@ -140,7 +137,7 @@ func (s *Progress) Extracting(filePath string) {
 // 参数:
 //   - filePath: 文件路径
 func (s *Progress) Adding(filePath string) {
-	if !s.enabled {
+	if !s.Enabled || s.BarStyle != StyleText {
 		return
 	}
 	fmt.Printf("%s %s\n", labelAdding, filePath)
@@ -151,7 +148,7 @@ func (s *Progress) Adding(filePath string) {
 // 参数:
 //   - dirPath: 目录路径
 func (s *Progress) Storing(dirPath string) {
-	if !s.enabled {
+	if !s.Enabled || s.BarStyle != StyleText {
 		return
 	}
 	fmt.Printf("%s %s\n", labelStoring, dirPath)

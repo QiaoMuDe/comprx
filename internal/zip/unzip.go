@@ -35,7 +35,7 @@ func Unzip(zipFilePath string, targetDir string, config *config.Config) error {
 	}
 
 	// 创建进度显示器
-	progress := progress.NewProgress(true, progress.StyleText)
+	progress := progress.New()
 	progress.Archive(zipFilePath)
 
 	// 遍历 ZIP 文件中的每个文件或目录
