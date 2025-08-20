@@ -41,7 +41,7 @@ func Unzip(zipFilePath string, targetDir string, cfg *config.Config) error {
 	}
 
 	// 开始进度显示
-	cfg.Progress.Start(totalSize, fmt.Sprint("正在解压", zipFilePath))
+	_ = cfg.Progress.Start(totalSize, fmt.Sprint("正在解压", zipFilePath))
 	defer func() {
 		_ = cfg.Progress.Close()
 	}()
