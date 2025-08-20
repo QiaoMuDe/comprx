@@ -9,10 +9,36 @@ import (
 	"gitee.com/MM-Q/comprx/types"
 )
 
-// FormatSize 格式化文件大小显示
+// 文件大小格式化相关常量
 const (
-	unit    = 1024
-	unitStr = "KMGTPE"
+	// SizeUnit 文件大小计算单位 (1024字节)
+	SizeUnit = 1024
+	// SizeUnitStr 文件大小单位字符串 (KB, MB, GB, TB, PB, EB)
+	SizeUnitStr = "KMGTPE"
+)
+
+// 切片预分配相关常量
+const (
+	// DefaultFileCapacity 默认文件列表初始容量
+	// 适用于 TAR/TGZ 等无法预先知道文件数量的格式
+	DefaultFileCapacity = 256
+)
+
+// 文件处理相关常量
+const (
+	// DefaultBufferSize 默认缓冲区大小 (32KB)
+	// 用于读取压缩文件内容时的缓冲区
+	DefaultBufferSize = 32 * 1024
+	
+	// DefaultFileMode 默认文件权限 (0644)
+	// 用于不保存文件权限的压缩格式 (如 GZIP, BZ2)
+	DefaultFileMode = 0644
+)
+
+// 文件扩展名相关常量
+const (
+	// DecompressedSuffix 解压缩文件的默认后缀
+	DecompressedSuffix = ".decompressed"
 )
 
 // FormatFileSize 格式化文件大小显示
@@ -23,15 +49,15 @@ const (
 // 返回:
 //   - string: 格式化后的文件大小字符串
 func FormatFileSize(size int64) string {
-	if size < unit {
+	if size < SizeUnit {
 		return fmt.Sprintf("%d B", size)
 	}
-	div, exp := int64(unit), 0
-	for n := size / unit; n >= unit; n /= unit {
-		div *= unit
+	div, exp := int64(SizeUnit), 0
+	for n := size / SizeUnit; n >= SizeUnit; n /= SizeUnit {
+		div *= SizeUnit
 		exp++
 	}
-	return fmt.Sprintf("%.1f %cB", float64(size)/float64(div), unitStr[exp])
+	return fmt.Sprintf("%.1f %cB", float64(size)/float64(div), SizeUnitStr[exp])
 }
 
 // FormatFileMode 格式化文件权限显示

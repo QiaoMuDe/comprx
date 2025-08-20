@@ -45,7 +45,7 @@ func ListTgz(archivePath string) (*types.ArchiveInfo, error) {
 	archiveInfo := &types.ArchiveInfo{
 		Type:           types.CompressTypeTgz,
 		CompressedSize: stat.Size(),
-		Files:          make([]types.FileInfo, 0),
+		Files:          make([]types.FileInfo, 0, utils.DefaultFileCapacity),
 	}
 
 	// 遍历TAR文件中的每个条目

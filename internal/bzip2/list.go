@@ -43,13 +43,13 @@ func ListBz2(archivePath string) (*types.ArchiveInfo, error) {
 	} else if ext == ".bzip2" {
 		originalName = baseName[:len(baseName)-len(ext)]
 	} else {
-		originalName = baseName + ".decompressed"
+		originalName = baseName + utils.DecompressedSuffix
 	}
 
 	// BZ2是单文件压缩，需要读取整个文件来获取原始大小
 	// 为了避免读取大文件，我们使用一个估算方法
 	var originalSize int64
-	buffer := make([]byte, 32*1024) // 32KB缓冲区
+	buffer := make([]byte, utils.DefaultBufferSize)
 	for {
 		n, err := bz2Reader.Read(buffer)
 		if err != nil {
@@ -68,7 +68,7 @@ func ListBz2(archivePath string) (*types.ArchiveInfo, error) {
 		Size:           originalSize,
 		CompressedSize: stat.Size(),
 		ModTime:        stat.ModTime(),
-		Mode:           0644, // BZ2不保存文件权限，使用默认权限
+		Mode:           utils.DefaultFileMode, // BZ2不保存文件权限，使用默认权限
 		IsDir:          false,
 		IsSymlink:      false,
 	}

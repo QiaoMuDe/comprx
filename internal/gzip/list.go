@@ -3,8 +3,10 @@ package gzip
 import (
 	"compress/gzip"
 	"fmt"
+	"io"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"gitee.com/MM-Q/comprx/internal/utils"
 	"gitee.com/MM-Q/comprx/types"
@@ -44,9 +46,11 @@ func ListGzip(archivePath string) (*types.ArchiveInfo, error) {
 		// 如果GZIP头中没有文件名，从压缩包文件名推导
 		baseName := filepath.Base(absPath)
 		if ext := filepath.Ext(baseName); ext == ".gz" {
-			originalName = baseName[:len(baseName)-len(ext)]
+			//originalName = baseName[:len(baseName)-len(ext)]
+			// 去除.gz后缀
+			originalName = strings.TrimSuffix(baseName, ".gz")
 		} else {
-			originalName = baseName + ".decompressed"
+			originalName = baseName + utils.DecompressedSuffix
 		}
 	}
 
@@ -54,11 +58,11 @@ func ListGzip(archivePath string) (*types.ArchiveInfo, error) {
 	// 为了避免读取大文件，我们使用一个估算方法
 	// 实际应用中可以考虑只读取部分数据或使用其他方法
 	var originalSize int64
-	buffer := make([]byte, 32*1024) // 32KB缓冲区
+	buffer := make([]byte, utils.DefaultBufferSize)
 	for {
 		n, err := gzipReader.Read(buffer)
 		if err != nil {
-			if err.Error() == "EOF" {
+			if err == io.EOF {
 				break
 			}
 			// 如果读取失败，使用压缩文件大小作为估算
@@ -73,7 +77,7 @@ func ListGzip(archivePath string) (*types.ArchiveInfo, error) {
 		Size:           originalSize,
 		CompressedSize: stat.Size(),
 		ModTime:        gzipReader.ModTime,
-		Mode:           0644, // GZIP不保存文件权限，使用默认权限
+		Mode:           utils.DefaultFileMode, // GZIP不保存文件权限，使用默认权限
 		IsDir:          false,
 		IsSymlink:      false,
 	}
