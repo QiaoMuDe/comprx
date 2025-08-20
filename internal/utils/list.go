@@ -10,6 +10,12 @@ import (
 )
 
 // FormatFileSize 格式化文件大小显示
+//
+// 参数:
+//   - size: 文件大小
+//
+// 返回:
+//   - string: 格式化后的文件大小字符串
 func FormatFileSize(size int64) string {
 	const unit = 1024
 	if size < unit {
@@ -24,12 +30,25 @@ func FormatFileSize(size int64) string {
 }
 
 // FormatFileMode 格式化文件权限显示
+//
+// 参数:
+//   - mode: 文件权限
+//
+// 返回:
+//   - string: 格式化后的文件权限字符串
 func FormatFileMode(mode os.FileMode) string {
 	return mode.String()
 }
 
 // MatchPattern 文件名模式匹配
 // 支持简单的通配符匹配: * 和 ?
+//
+// 参数:
+//   - name: 文件名
+//   - pattern: 模式字符串
+//
+// 返回:
+//   - bool: 是否匹配成功
 func MatchPattern(name, pattern string) bool {
 	if pattern == "" {
 		return true
@@ -58,6 +77,10 @@ func MatchPattern(name, pattern string) bool {
 }
 
 // PrintFileInfo 格式化打印单个文件信息
+//
+// 参数:
+//   - info: 文件信息
+//   - showDetails: 是否显示详细信息
 func PrintFileInfo(info types.FileInfo, showDetails bool) {
 	if showDetails {
 		// 详细模式：显示权限、大小、时间等
@@ -80,27 +103,43 @@ func PrintFileInfo(info types.FileInfo, showDetails bool) {
 	}
 }
 
-// PrintArchiveInfo 格式化打印压缩包信息
-func PrintArchiveInfo(archiveInfo *types.ArchiveInfo, showSummary bool) {
-	if showSummary {
-		fmt.Printf("压缩包类型: %s\n", archiveInfo.Type)
-		fmt.Printf("文件总数: %d\n", archiveInfo.TotalFiles)
-		fmt.Printf("原始大小: %s\n", FormatFileSize(archiveInfo.TotalSize))
-		if archiveInfo.CompressedSize > 0 {
-			fmt.Printf("压缩大小: %s\n", FormatFileSize(archiveInfo.CompressedSize))
-			ratio := float64(archiveInfo.CompressedSize) / float64(archiveInfo.TotalSize) * 100
-			fmt.Printf("压缩率: %.1f%%\n", 100-ratio)
-		}
-		fmt.Println(strings.Repeat("-", 50))
+// PrintArchiveSummary 打印压缩包摘要信息
+//
+// 参数:
+//   - archiveInfo: 压缩包信息
+func PrintArchiveSummary(archiveInfo *types.ArchiveInfo) {
+	fmt.Println(strings.Repeat("-", 50))                            // 分隔线
+	fmt.Printf("压缩包类型: %s\n", archiveInfo.Type)                     // 压缩包类型
+	fmt.Printf("文件总数: %d\n", archiveInfo.TotalFiles)                // 文件总数
+	fmt.Printf("原始大小: %s\n", FormatFileSize(archiveInfo.TotalSize)) // 原始大小
+	if archiveInfo.CompressedSize > 0 {
+		fmt.Printf("压缩大小: %s\n", FormatFileSize(archiveInfo.CompressedSize)) // 压缩大小
+		ratio := float64(archiveInfo.CompressedSize) / float64(archiveInfo.TotalSize) * 100
+		fmt.Printf("压缩率: %.1f%%\n", 100-ratio) // 压缩率
 	}
+	fmt.Println(strings.Repeat("-", 50)) // 分隔线
+}
 
-	// 打印文件列表
-	for _, file := range archiveInfo.Files {
-		PrintFileInfo(file, showSummary)
+// PrintFileList 打印文件列表
+//
+// 参数:
+//   - files: 文件列表
+//   - showDetails: 是否显示详细信息
+func PrintFileList(files []types.FileInfo, showDetails bool) {
+	// 遍历文件列表并打印
+	for _, file := range files {
+		PrintFileInfo(file, showDetails)
 	}
 }
 
 // FilterFilesByPattern 根据模式过滤文件列表
+//
+// 参数:
+//   - files: 文件列表
+//   - pattern: 模式字符串
+//
+// 返回:
+//   - []types.FileInfo: 过滤后的文件列表
 func FilterFilesByPattern(files []types.FileInfo, pattern string) []types.FileInfo {
 	if pattern == "" {
 		return files
@@ -116,6 +155,13 @@ func FilterFilesByPattern(files []types.FileInfo, pattern string) []types.FileIn
 }
 
 // LimitFiles 限制文件列表数量
+//
+// 参数:
+//   - files: 文件列表
+//   - limit: 限制数量
+//
+// 返回:
+//   - []types.FileInfo: 限制后的文件列表
 func LimitFiles(files []types.FileInfo, limit int) []types.FileInfo {
 	if limit <= 0 || limit >= len(files) {
 		return files
