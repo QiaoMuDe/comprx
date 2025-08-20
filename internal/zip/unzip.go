@@ -29,15 +29,18 @@ func Unzip(zipFilePath string, targetDir string, cfg *config.Config) error {
 	}
 	defer func() { _ = zipReader.Close() }()
 
-	// 如果启用进度条并且不是文本模式则获取压缩包总大小
+	// 在进度条模式下计算总大小
 	var totalSize int64
 	if cfg.Progress.Enabled && cfg.Progress.BarStyle != types.ProgressStyleText {
+		bar := cfg.Progress.StartScan("正在计算压缩包大小...")
 		for _, file := range zipReader.File {
 			// 只计算普通文件的大小，跳过目录和软链接
 			if !file.Mode().IsDir() && file.Mode()&os.ModeSymlink == 0 {
-				totalSize += int64(file.UncompressedSize64)
+				totalSize += int64(file.UncompressedSize64)   // 计算总大小
+				_ = bar.Add64(int64(file.UncompressedSize64)) // 更新进度条
 			}
 		}
+		_ = cfg.Progress.CloseBar(bar) // 关闭进度条
 	}
 
 	// 开始进度显示

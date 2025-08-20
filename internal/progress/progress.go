@@ -76,6 +76,42 @@ func (s *Progress) Start(totalSize int64, description string) error {
 	return nil
 }
 
+// StartScan 开始扫描进度显示，创建进度条
+//
+// 参数:
+//   - description: 操作描述（如"正在计算文件大小..."）
+//
+// 返回:
+//   - bar: 进度条实例
+func (s *Progress) StartScan(description string) *progressbar.ProgressBar {
+	return s.newProgressBar(-1, description)
+}
+
+// CloseBar 通用进度条关闭方法
+//
+// 参数:
+//   - bar: 进度条实例
+//
+// 返回:
+//   - error: 清理错误
+func (s *Progress) CloseBar(bar *progressbar.ProgressBar) error {
+	if bar == nil {
+		return nil
+	}
+
+	// 完成进度条
+	if err := bar.Finish(); err != nil {
+		return err
+	}
+
+	// 关闭进度条
+	if err := bar.Close(); err != nil {
+		return err
+	}
+
+	return nil
+}
+
 // CopyBuffer 带进度显示的数据复制
 //
 // 参数:
