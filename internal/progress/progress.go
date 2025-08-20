@@ -149,6 +149,10 @@ func (s *Progress) Compressing(filePath string) {
 	fmt.Printf("%s %s\n", labelCompressing, filePath)
 }
 
+// ======================================================
+// 解压进度
+// ======================================================
+
 // Inflating 显示解压文件
 //
 // 参数:
@@ -181,6 +185,10 @@ func (s *Progress) Extracting(filePath string) {
 	}
 	fmt.Printf("%s %s\n", labelExtracting, filePath)
 }
+
+// ======================================================
+// 压缩进度
+// ======================================================
 
 // Adding 显示添加文件
 //

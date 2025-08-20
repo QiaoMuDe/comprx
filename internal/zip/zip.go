@@ -44,6 +44,9 @@ func Zip(dst string, src string, config *config.Config) error {
 		return fmt.Errorf("创建目标目录失败: %w", err)
 	}
 
+	// 打印压缩文件信息
+	config.Progress.Archive(dst)
+
 	// 创建 ZIP 文件
 	zipFile, err := os.Create(dst)
 	if err != nil {
@@ -86,18 +89,18 @@ func Zip(dst string, src string, config *config.Config) error {
 //   - path: string - 文件路径
 //   - headerName: string - ZIP 文件中的文件名
 //   - info: os.FileInfo - 文件信息
-//   - config: 压缩配置
+//   - cfg: 压缩配置
 //
 // 返回值:
 //   - error - 操作过程中遇到的错误
-func processRegularFile(zipWriter *zip.Writer, path, headerName string, info os.FileInfo, config *config.Config) error {
+func processRegularFile(zipWriter *zip.Writer, path, headerName string, info os.FileInfo, cfg *config.Config) error {
 	// 创建文件头
 	header, err := zip.FileInfoHeader(info)
 	if err != nil {
 		return fmt.Errorf("处理文件 '%s' 时出错 - 创建 ZIP 文件头失败: %w", path, err)
 	}
-	header.Name = headerName                     // 设置文件名
-	header.Method = getCompressionMethod(config) // 使用配置的压缩方法
+	header.Name = headerName                  // 设置文件名
+	header.Method = getCompressionMethod(cfg) // 使用配置的压缩方法
 
 	// 创建 ZIP 写入器
 	fileWriter, err := zipWriter.CreateHeader(header)
@@ -231,11 +234,11 @@ func getCompressionMethod(cfg *config.Config) uint16 {
 // 参数:
 //   - src: 源目录路径
 //   - zipWriter: ZIP写入器
-//   - config: 压缩配置
+//   - cfg: 压缩配置
 //
 // 返回值:
 //   - error: 遍历过程中发生的错误
-func walkDirectoryForZip(src string, zipWriter *zip.Writer, config *config.Config) error {
+func walkDirectoryForZip(src string, zipWriter *zip.Writer, cfg *config.Config) error {
 	return filepath.WalkDir(src, func(path string, entry fs.DirEntry, err error) error {
 		if err != nil {
 			// 如果不存在则忽略
@@ -262,19 +265,23 @@ func walkDirectoryForZip(src string, zipWriter *zip.Writer, config *config.Confi
 			if err != nil {
 				return fmt.Errorf("处理文件 '%s' 时出错 - 获取文件信息失败: %w", path, err)
 			}
-			return processRegularFile(zipWriter, path, headerName, info, config)
+			cfg.Progress.Adding(path) // 显示进度
+			return processRegularFile(zipWriter, path, headerName, info, cfg)
 
 		case entry.IsDir(): // 处理目录
 			info, err := entry.Info()
 			if err != nil {
 				return fmt.Errorf("处理目录 '%s' 时出错 - 获取目录信息失败: %w", path, err)
 			}
+			cfg.Progress.Storing(path) // 显示进度
 			return processDirectory(zipWriter, headerName, info)
 
 		case entry.Type()&fs.ModeSymlink != 0: // 处理符号链接
+			cfg.Progress.Adding(path) // 显示进度
 			return processSymlink(zipWriter, path, headerName, entry.Type())
 
 		default: // 处理特殊文件
+			cfg.Progress.Adding(path) // 显示进度
 			return processSpecialFile(zipWriter, headerName, entry.Type())
 		}
 	})
