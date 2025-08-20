@@ -9,6 +9,12 @@ import (
 	"gitee.com/MM-Q/comprx/types"
 )
 
+// FormatSize 格式化文件大小显示
+const (
+	unit    = 1024
+	unitStr = "KMGTPE"
+)
+
 // FormatFileSize 格式化文件大小显示
 //
 // 参数:
@@ -17,7 +23,6 @@ import (
 // 返回:
 //   - string: 格式化后的文件大小字符串
 func FormatFileSize(size int64) string {
-	const unit = 1024
 	if size < unit {
 		return fmt.Sprintf("%d B", size)
 	}
@@ -26,7 +31,7 @@ func FormatFileSize(size int64) string {
 		div *= unit
 		exp++
 	}
-	return fmt.Sprintf("%.1f %cB", float64(size)/float64(div), "KMGTPE"[exp])
+	return fmt.Sprintf("%.1f %cB", float64(size)/float64(div), unitStr[exp])
 }
 
 // FormatFileMode 格式化文件权限显示
