@@ -107,6 +107,26 @@ func (c *Comprx) SetCompressionLevel(level config.CompressionLevel) {
 	c.config.CompressionLevel = level
 }
 
+// WithDisablePathValidation 设置禁用路径验证
+//
+// 参数:
+//   - disable: 是否禁用路径验证
+//
+// 返回:
+//   - *Comprx: 压缩器实例
+func (c *Comprx) WithDisablePathValidation(disable bool) *Comprx {
+	c.SetDisablePathValidation(disable)
+	return c
+}
+
+// SetDisablePathValidation 设置禁用路径验证
+//
+// 参数:
+//   - disable: 是否禁用路径验证
+func (c *Comprx) SetDisablePathValidation(disable bool) {
+	c.config.DisablePathValidation = disable
+}
+
 // ==============================================
 // 打包压缩方法
 // ==============================================

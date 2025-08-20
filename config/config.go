@@ -29,9 +29,10 @@ type Config struct {
 // New 创建新的压缩器配置
 func New() *Config {
 	return &Config{
-		CompressionLevel:  CompressionLevelDefault, // 默认压缩等级
-		OverwriteExisting: false,                   // 默认不覆盖已存在文件
-		Progress:          progress.New(),          // 创建进度显示
+		CompressionLevel:      CompressionLevelDefault, // 默认压缩等级
+		OverwriteExisting:     false,                   // 默认不覆盖已存在文件
+		Progress:              progress.New(),          // 创建进度显示
+		DisablePathValidation: false,                   // 默认启用路径验证
 	}
 }
 
