@@ -115,16 +115,21 @@ func EnsureAbsPath(path, pathType string) (string, error) {
 }
 
 // ValidatePathSimple 验证文件路径是否安全，防止路径遍历攻击
-// 这是一个简化版本，专注于性能和基本安全检查
 //
 // 参数：
 //   - targetDir: 目标目录
 //   - filePath: 要验证的文件路径
+//   - skipValidation: 是否跳过安全验证（警告：仅在处理可信数据时使用）
 //
 // 返回值：
 //   - string: 安全的文件路径
 //   - error: 如果路径不安全，则返回错误信息
-func ValidatePathSimple(targetDir, filePath string) (string, error) {
+func ValidatePathSimple(targetDir, filePath string, skipValidation bool) (string, error) {
+	// 如果跳过验证，直接拼接返回
+	if skipValidation {
+		return filepath.Join(targetDir, filePath), nil
+	}
+
 	// === 第一阶段：检查原始路径中的危险模式 ===
 	// 注意：这些检查必须在filepath.Clean()之前进行，因为Clean会改变路径格式
 
@@ -164,11 +169,6 @@ func ValidatePathSimple(targetDir, filePath string) (string, error) {
 	// 双重检查：确保Clean后没有残留的上级目录引用
 	if strings.Contains(cleanPath, "..") {
 		return "", fmt.Errorf("不安全的路径: %s", filePath)
-	}
-
-	// 检查可疑的路径模式 - 隐藏文件路径
-	if strings.Contains(cleanPath, string(os.PathSeparator)+".") {
-		return "", fmt.Errorf("可疑路径: %s", filePath)
 	}
 
 	// === 第三阶段：构建最终安全路径 ===

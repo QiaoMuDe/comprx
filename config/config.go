@@ -20,9 +20,10 @@ const (
 
 // Config 压缩器配置
 type Config struct {
-	CompressionLevel  CompressionLevel   // 压缩等级
-	OverwriteExisting bool               // 是否覆盖已存在的文件
-	Progress          *progress.Progress // 进度显示
+	CompressionLevel      CompressionLevel   // 压缩等级
+	OverwriteExisting     bool               // 是否覆盖已存在的文件
+	Progress              *progress.Progress // 进度显示
+	DisablePathValidation bool               // 是否禁用路径验证
 }
 
 // New 创建新的压缩器配置

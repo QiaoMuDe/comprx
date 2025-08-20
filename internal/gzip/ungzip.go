@@ -22,15 +22,6 @@ import (
 // 返回值:
 //   - error: 解压缩过程中发生的错误
 func Ungzip(gzipFilePath string, targetPath string, config *config.Config) error {
-	// 确保路径为绝对路径
-	var absErr error
-	if gzipFilePath, absErr = utils.EnsureAbsPath(gzipFilePath, "GZIP文件路径"); absErr != nil {
-		return absErr
-	}
-	if targetPath, absErr = utils.EnsureAbsPath(targetPath, "目标文件路径"); absErr != nil {
-		return absErr
-	}
-
 	// 打开 GZIP 文件（同时检查文件是否存在）
 	gzipFile, err := os.Open(gzipFilePath)
 	if err != nil {
@@ -57,7 +48,7 @@ func Ungzip(gzipFilePath string, targetPath string, config *config.Config) error
 			// 目标是目录，生成文件名
 			if gzipReader.Name != "" {
 				// 直接验证 GZIP 头部的文件名，并与目标目录合并
-				validatedPath, err := utils.ValidatePathSimple(targetPath, gzipReader.Name)
+				validatedPath, err := utils.ValidatePathSimple(targetPath, gzipReader.Name, config.DisablePathValidation)
 				if err != nil {
 					return fmt.Errorf("GZIP文件头包含不安全的文件名: %w", err)
 				}

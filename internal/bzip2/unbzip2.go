@@ -22,15 +22,6 @@ import (
 // 返回值:
 //   - error: 解压缩过程中发生的错误
 func Unbz2(bz2FilePath string, targetPath string, config *config.Config) error {
-	// 确保路径为绝对路径
-	var absErr error
-	if bz2FilePath, absErr = utils.EnsureAbsPath(bz2FilePath, "BZIP2文件路径"); absErr != nil {
-		return absErr
-	}
-	if targetPath, absErr = utils.EnsureAbsPath(targetPath, "目标文件路径"); absErr != nil {
-		return absErr
-	}
-
 	// 打开 BZIP2 文件（同时检查文件是否存在）
 	bz2File, err := os.Open(bz2FilePath)
 	if err != nil {
@@ -54,7 +45,13 @@ func Unbz2(bz2FilePath string, targetPath string, config *config.Config) error {
 			baseName := filepath.Base(bz2FilePath)
 			baseName = strings.TrimSuffix(baseName, ".bz2")
 			baseName = strings.TrimSuffix(baseName, ".bzip2")
-			targetPath = filepath.Join(targetPath, baseName)
+
+			// 添加安全验证
+			validatedPath, err := utils.ValidatePathSimple(targetPath, baseName, config.DisablePathValidation)
+			if err != nil {
+				return fmt.Errorf("BZIP2文件名包含不安全的路径: %w", err)
+			}
+			targetPath = validatedPath
 
 			// 重新检查生成的目标文件是否存在
 			if _, err := os.Stat(targetPath); err == nil && !config.OverwriteExisting {

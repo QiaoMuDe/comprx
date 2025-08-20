@@ -21,15 +21,6 @@ import (
 // 返回值:
 //   - error: 解压缩过程中发生的错误
 func Untar(tarFilePath string, targetDir string, config *config.Config) error {
-	// 确保路径为绝对路径
-	var absErr error
-	if tarFilePath, absErr = utils.EnsureAbsPath(tarFilePath, "TAR文件路径"); absErr != nil {
-		return absErr
-	}
-	if targetDir, absErr = utils.EnsureAbsPath(targetDir, "目标目录路径"); absErr != nil {
-		return absErr
-	}
-
 	// 打开 TAR 文件
 	tarFile, err := os.Open(tarFilePath)
 	if err != nil {
@@ -56,7 +47,7 @@ func Untar(tarFilePath string, targetDir string, config *config.Config) error {
 		}
 
 		// 安全的路径验证和拼接
-		targetPath, err := utils.ValidatePathSimple(targetDir, header.Name)
+		targetPath, err := utils.ValidatePathSimple(targetDir, header.Name, config.DisablePathValidation)
 		if err != nil {
 			return fmt.Errorf("处理文件 '%s' 时路径验证失败: %w", header.Name, err)
 		}

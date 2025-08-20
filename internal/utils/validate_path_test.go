@@ -56,11 +56,21 @@ func TestValidatePathSimple_SafePaths(t *testing.T) {
 			filePath: "file-name_123.txt",
 			expected: "/tmp/extract/file-name_123.txt",
 		},
+		{
+			name:     "隐藏的文件名",
+			filePath: ".hiddenfile.txt",
+			expected: "/tmp/extract/.hiddenfile.txt",
+		},
+		{
+			name:     "包含.的git目录",
+			filePath: "mydir/.git/file.txt",
+			expected: "/tmp/extract/mydir/.git/file.txt",
+		},
 	}
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			result, err := ValidatePathSimple(targetDir, tc.filePath)
+			result, err := ValidatePathSimple(targetDir, tc.filePath, false)
 			if err != nil {
 				t.Errorf("安全路径 '%s' 被错误拒绝: %v", tc.filePath, err)
 				return
@@ -127,7 +137,7 @@ func TestValidatePathSimple_DangerousPaths(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			result, err := ValidatePathSimple(targetDir, tc.filePath)
+			result, err := ValidatePathSimple(targetDir, tc.filePath, false)
 			if err == nil {
 				t.Errorf("危险路径 '%s' 未被拒绝，返回结果: %s (原因: %s)", tc.filePath, result, tc.reason)
 				return
@@ -159,7 +169,7 @@ func TestValidatePathSimple_SuspiciousPaths(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			result, err := ValidatePathSimple(targetDir, tc.filePath)
+			result, err := ValidatePathSimple(targetDir, tc.filePath, false)
 
 			// 在某些系统上这可能被拒绝，在其他系统上可能被接受
 			if err != nil {
@@ -218,7 +228,7 @@ func TestValidatePathSimple_EdgeCases(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			result, err := ValidatePathSimple(tc.targetDir, tc.filePath)
+			result, err := ValidatePathSimple(tc.targetDir, tc.filePath, false)
 
 			if tc.expectErr && err == nil {
 				t.Errorf("期望返回错误但没有返回，结果: %s (原因: %s)", result, tc.reason)
@@ -259,7 +269,7 @@ func TestValidatePathSimple_CrossPlatform(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			result, err := ValidatePathSimple(targetDir, tc.filePath)
+			result, err := ValidatePathSimple(targetDir, tc.filePath, false)
 
 			if tc.expectErr && err == nil {
 				t.Errorf("期望返回错误但没有返回，结果: %s", result)
@@ -298,7 +308,7 @@ func TestValidatePathSimple_RealWorldAttacks(t *testing.T) {
 
 	for i, attack := range realAttacks {
 		t.Run(fmt.Sprintf("RealAttack_%d", i+1), func(t *testing.T) {
-			result, err := ValidatePathSimple(targetDir, attack)
+			result, err := ValidatePathSimple(targetDir, attack, false)
 			if err == nil {
 				t.Errorf("真实攻击路径 '%s' 未被阻止，返回: %s", attack, result)
 			} else {
@@ -314,7 +324,7 @@ func BenchmarkValidatePathSimple_SafePath(b *testing.B) {
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		_, _ = ValidatePathSimple(targetDir, filePath)
+		_, _ = ValidatePathSimple(targetDir, filePath, false)
 	}
 }
 
@@ -324,7 +334,7 @@ func BenchmarkValidatePathSimple_DangerousPath(b *testing.B) {
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		_, _ = ValidatePathSimple(targetDir, filePath)
+		_, _ = ValidatePathSimple(targetDir, filePath, false)
 	}
 }
 
@@ -334,7 +344,7 @@ func BenchmarkValidatePathSimple_ComplexPath(b *testing.B) {
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		_, _ = ValidatePathSimple(targetDir, filePath)
+		_, _ = ValidatePathSimple(targetDir, filePath, false)
 	}
 }
 
@@ -370,7 +380,7 @@ func TestValidatePathSimple_WindowsSpecific(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			result, err := ValidatePathSimple(targetDir, tc.filePath)
+			result, err := ValidatePathSimple(targetDir, tc.filePath, false)
 
 			if tc.expectErr && err == nil {
 				t.Errorf("期望返回错误但没有返回，结果: %s", result)
