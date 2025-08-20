@@ -5,7 +5,6 @@ import (
 	"path/filepath"
 
 	"gitee.com/MM-Q/comprx/types"
-	"github.com/schollz/progressbar/v3"
 )
 
 // 操作标签常量 - 确保冒号对齐
@@ -35,66 +34,66 @@ func New() *Progress {
 	}
 }
 
-// NewProgressBar 创建一个进度条
-//
-// 参数:
-//   - total: 进度条总大小
-//   - description: 进度条描述信息
-//
-// 返回:
-//   - *progressbar.ProgressBar: 进度条指针
-//
-// 进度条样式:
-//   - types.ProgressStyleUnicode: Unicode样式进度条 - 使用Unicode字符绘制精美进度条
-//   - types.ProgressStyleASCII: ASCII样式进度条 - 使用基础ASCII字符绘制兼容性最好的进度条
-func (s *Progress) NewProgressBar(total int64, description string) *progressbar.ProgressBar {
-	var theme progressbar.Theme
-	// 如果设置样式为Unicode, 否则默认使用ASCII样式
-	if s.BarStyle == types.ProgressStyleUnicode {
-		theme = progressbar.ThemeUnicode
-	} else {
-		theme = progressbar.ThemeASCII
-	}
+// // NewProgressBar 创建一个进度条
+// //
+// // 参数:
+// //   - total: 进度条总大小
+// //   - description: 进度条描述信息
+// //
+// // 返回:
+// //   - *progressbar.ProgressBar: 进度条指针
+// //
+// // 进度条样式:
+// //   - types.ProgressStyleUnicode: Unicode样式进度条 - 使用Unicode字符绘制精美进度条
+// //   - types.ProgressStyleASCII: ASCII样式进度条 - 使用基础ASCII字符绘制兼容性最好的进度条
+// func (s *Progress) NewProgressBar(total int64, description string) *progressbar.ProgressBar {
+// 	var theme progressbar.Theme
+// 	// 如果设置样式为Unicode, 否则默认使用ASCII样式
+// 	if s.BarStyle == types.ProgressStyleUnicode {
+// 		theme = progressbar.ThemeUnicode
+// 	} else {
+// 		theme = progressbar.ThemeASCII
+// 	}
 
-	return progressbar.NewOptions64(
-		total,                             // 进度条总大小
-		progressbar.OptionClearOnFinish(), // 完成后清除进度条
-		progressbar.OptionSetDescription(description), // 进度条描述信息
-		progressbar.OptionSetElapsedTime(true),        // 显示已用时间
-		progressbar.OptionSetPredictTime(true),        // 显示预计剩余时间
-		progressbar.OptionSetRenderBlankState(true),   // 在进度条完成之前显示空白状态
-		progressbar.OptionShowBytes(true),             // 显示进度条传输的字节
-		progressbar.OptionShowCount(),                 // 显示当前进度的总和
-		//progressbar.OptionShowElapsedTimeOnFinish(),        // 完成后显示已用时间
-		progressbar.OptionSetTheme(theme), // ASCII 进度条主题(默认为 Unicode 进度条主题)
-	)
-}
+// 	return progressbar.NewOptions64(
+// 		total,                             // 进度条总大小
+// 		progressbar.OptionClearOnFinish(), // 完成后清除进度条
+// 		progressbar.OptionSetDescription(description), // 进度条描述信息
+// 		progressbar.OptionSetElapsedTime(true),        // 显示已用时间
+// 		progressbar.OptionSetPredictTime(true),        // 显示预计剩余时间
+// 		progressbar.OptionSetRenderBlankState(true),   // 在进度条完成之前显示空白状态
+// 		progressbar.OptionShowBytes(true),             // 显示进度条传输的字节
+// 		progressbar.OptionShowCount(),                 // 显示当前进度的总和
+// 		//progressbar.OptionShowElapsedTimeOnFinish(),        // 完成后显示已用时间
+// 		progressbar.OptionSetTheme(theme), // ASCII 进度条主题(默认为 Unicode 进度条主题)
+// 	)
+// }
 
-// CloseBar 关闭进度条
-//
-// 参数:
-//   - bar: 进度条指针
-//
-// 返回:
-//   - error: 错误信息
-func CloseBar(bar *progressbar.ProgressBar) error {
-	// 如果进度条为空，则返回
-	if bar == nil {
-		return nil
-	}
+// // CloseBar 关闭进度条
+// //
+// // 参数:
+// //   - bar: 进度条指针
+// //
+// // 返回:
+// //   - error: 错误信息
+// func CloseBar(bar *progressbar.ProgressBar) error {
+// 	// 如果进度条为空，则返回
+// 	if bar == nil {
+// 		return nil
+// 	}
 
-	// 完成进度条
-	if err := bar.Finish(); err != nil {
-		return err
-	}
+// 	// 完成进度条
+// 	if err := bar.Finish(); err != nil {
+// 		return err
+// 	}
 
-	// 关闭进度条
-	if err := bar.Close(); err != nil {
-		return err
-	}
+// 	// 关闭进度条
+// 	if err := bar.Close(); err != nil {
+// 		return err
+// 	}
 
-	return nil
-}
+// 	return nil
+// }
 
 // IsEnabled 检查是否启用
 //
