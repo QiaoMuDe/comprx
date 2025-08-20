@@ -117,7 +117,7 @@ func (s *Progress) Archive(archivePath string) {
 	fmt.Printf("%s %s\n", labelArchive, filepath.Base(archivePath))
 }
 
-// Compressing 显示压缩文件
+// Compressing 显示压缩文件信息
 //
 // 参数:
 //   - filePath: 文件路径
@@ -125,7 +125,7 @@ func (s *Progress) Compressing(filePath string) {
 	if !s.Enabled || s.BarStyle != types.ProgressStyleText {
 		return
 	}
-	fmt.Printf("%s %s\n", labelCompressing, filePath)
+	fmt.Printf("%s %s\n", labelCompressing, filepath.Base(filePath))
 }
 
 // ======================================================
