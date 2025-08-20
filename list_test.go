@@ -613,6 +613,354 @@ func TestListMatch(t *testing.T) {
 	}
 }
 
+// TestPrintArchiveInfo 测试打印压缩包信息
+func TestPrintArchiveInfo(t *testing.T) {
+	tempDir := t.TempDir()
+
+	// 创建测试文件
+	srcFile := filepath.Join(tempDir, "print_test.txt")
+	if err := os.WriteFile(srcFile, []byte("打印测试内容"), 0644); err != nil {
+		t.Fatal(err)
+	}
+
+	// 创建ZIP文件
+	zipFile := filepath.Join(tempDir, "print_test.zip")
+	err := Pack(zipFile, srcFile)
+	if err != nil {
+		t.Fatalf("创建ZIP文件失败: %v", err)
+	}
+
+	// 测试打印压缩包信息
+	err = PrintArchiveInfo(zipFile)
+	if err != nil {
+		t.Fatalf("PrintArchiveInfo失败: %v", err)
+	}
+	t.Log("PrintArchiveInfo 执行成功")
+}
+
+// TestPrintFiles 测试打印文件信息
+func TestPrintFiles(t *testing.T) {
+	tempDir := t.TempDir()
+
+	// 创建测试文件
+	srcFile := filepath.Join(tempDir, "print_files_test.txt")
+	if err := os.WriteFile(srcFile, []byte("打印文件测试内容"), 0644); err != nil {
+		t.Fatal(err)
+	}
+
+	// 创建ZIP文件
+	zipFile := filepath.Join(tempDir, "print_files_test.zip")
+	err := Pack(zipFile, srcFile)
+	if err != nil {
+		t.Fatalf("创建ZIP文件失败: %v", err)
+	}
+
+	// 测试简洁样式
+	t.Log("测试简洁样式:")
+	err = PrintFiles(zipFile, false)
+	if err != nil {
+		t.Fatalf("PrintFiles(简洁样式)失败: %v", err)
+	}
+
+	// 测试详细样式
+	t.Log("测试详细样式:")
+	err = PrintFiles(zipFile, true)
+	if err != nil {
+		t.Fatalf("PrintFiles(详细样式)失败: %v", err)
+	}
+}
+
+// TestPrintFilesLimit 测试限制打印文件数量
+func TestPrintFilesLimit(t *testing.T) {
+	tempDir := t.TempDir()
+
+	// 创建多个文件
+	srcDir := filepath.Join(tempDir, "print_limit_test")
+	if err := os.MkdirAll(srcDir, 0755); err != nil {
+		t.Fatal(err)
+	}
+
+	for i := 0; i < 5; i++ {
+		fileName := filepath.Join(srcDir, fmt.Sprintf("file%d.txt", i))
+		content := fmt.Sprintf("文件 %d 的内容", i)
+		if err := os.WriteFile(fileName, []byte(content), 0644); err != nil {
+			t.Fatal(err)
+		}
+	}
+
+	// 创建ZIP文件
+	zipFile := filepath.Join(tempDir, "print_limit_test.zip")
+	err := Pack(zipFile, srcDir)
+	if err != nil {
+		t.Fatalf("创建ZIP文件失败: %v", err)
+	}
+
+	// 测试限制打印3个文件（简洁样式）
+	t.Log("测试限制打印3个文件（简洁样式）:")
+	err = PrintFilesLimit(zipFile, 3, false)
+	if err != nil {
+		t.Fatalf("PrintFilesLimit失败: %v", err)
+	}
+
+	// 测试限制打印2个文件（详细样式）
+	t.Log("测试限制打印2个文件（详细样式）:")
+	err = PrintFilesLimit(zipFile, 2, true)
+	if err != nil {
+		t.Fatalf("PrintFilesLimit失败: %v", err)
+	}
+}
+
+// TestPrintFilesMatch 测试匹配模式打印
+func TestPrintFilesMatch(t *testing.T) {
+	tempDir := t.TempDir()
+
+	// 创建不同类型的文件
+	srcDir := filepath.Join(tempDir, "print_match_test")
+	if err := os.MkdirAll(srcDir, 0755); err != nil {
+		t.Fatal(err)
+	}
+
+	fileTypes := []string{"doc1.txt", "doc2.txt", "image1.jpg", "data1.csv"}
+	for _, fileName := range fileTypes {
+		filePath := filepath.Join(srcDir, fileName)
+		content := "内容: " + fileName
+		if err := os.WriteFile(filePath, []byte(content), 0644); err != nil {
+			t.Fatal(err)
+		}
+	}
+
+	// 创建ZIP文件
+	zipFile := filepath.Join(tempDir, "print_match_test.zip")
+	err := Pack(zipFile, srcDir)
+	if err != nil {
+		t.Fatalf("创建ZIP文件失败: %v", err)
+	}
+
+	// 测试匹配txt文件（简洁样式）
+	t.Log("测试匹配*.txt文件（简洁样式）:")
+	err = PrintFilesMatch(zipFile, "*.txt", false)
+	if err != nil {
+		t.Fatalf("PrintFilesMatch失败: %v", err)
+	}
+
+	// 测试匹配jpg文件（详细样式）
+	t.Log("测试匹配*.jpg文件（详细样式）:")
+	err = PrintFilesMatch(zipFile, "*.jpg", true)
+	if err != nil {
+		t.Fatalf("PrintFilesMatch失败: %v", err)
+	}
+}
+
+// TestPrintArchiveAndFiles 测试打印压缩包信息和文件信息
+func TestPrintArchiveAndFiles(t *testing.T) {
+	tempDir := t.TempDir()
+
+	// 创建测试文件
+	srcFile := filepath.Join(tempDir, "archive_files_test.txt")
+	if err := os.WriteFile(srcFile, []byte("压缩包和文件信息测试"), 0644); err != nil {
+		t.Fatal(err)
+	}
+
+	// 创建ZIP文件
+	zipFile := filepath.Join(tempDir, "archive_files_test.zip")
+	err := Pack(zipFile, srcFile)
+	if err != nil {
+		t.Fatalf("创建ZIP文件失败: %v", err)
+	}
+
+	// 测试简洁样式
+	t.Log("测试压缩包信息+文件信息（简洁样式）:")
+	err = PrintArchiveAndFiles(zipFile, false)
+	if err != nil {
+		t.Fatalf("PrintArchiveAndFiles(简洁样式)失败: %v", err)
+	}
+
+	// 测试详细样式
+	t.Log("测试压缩包信息+文件信息（详细样式）:")
+	err = PrintArchiveAndFiles(zipFile, true)
+	if err != nil {
+		t.Fatalf("PrintArchiveAndFiles(详细样式)失败: %v", err)
+	}
+}
+
+// TestConvenienceFunctions 测试便捷函数
+func TestConvenienceFunctions(t *testing.T) {
+	tempDir := t.TempDir()
+
+	// 创建测试文件
+	srcDir := filepath.Join(tempDir, "convenience_test")
+	if err := os.MkdirAll(srcDir, 0755); err != nil {
+		t.Fatal(err)
+	}
+
+	// 创建多个文件
+	for i := 0; i < 5; i++ {
+		fileName := filepath.Join(srcDir, fmt.Sprintf("file%d.txt", i))
+		content := fmt.Sprintf("便捷函数测试文件 %d", i)
+		if err := os.WriteFile(fileName, []byte(content), 0644); err != nil {
+			t.Fatal(err)
+		}
+	}
+
+	// 创建ZIP文件
+	zipFile := filepath.Join(tempDir, "convenience_test.zip")
+	err := Pack(zipFile, srcDir)
+	if err != nil {
+		t.Fatalf("创建ZIP文件失败: %v", err)
+	}
+
+	// 测试PrintLs（简洁样式）
+	t.Log("测试PrintLs（简洁样式）:")
+	err = PrintLs(zipFile)
+	if err != nil {
+		t.Fatalf("PrintLs失败: %v", err)
+	}
+
+	// 测试PrintLl（详细样式）
+	t.Log("测试PrintLl（详细样式）:")
+	err = PrintLl(zipFile)
+	if err != nil {
+		t.Fatalf("PrintLl失败: %v", err)
+	}
+
+	// 测试PrintLsLimit
+	t.Log("测试PrintLsLimit（限制3个文件）:")
+	err = PrintLsLimit(zipFile, 3)
+	if err != nil {
+		t.Fatalf("PrintLsLimit失败: %v", err)
+	}
+
+	// 测试PrintLlLimit
+	t.Log("测试PrintLlLimit（限制2个文件）:")
+	err = PrintLlLimit(zipFile, 2)
+	if err != nil {
+		t.Fatalf("PrintLlLimit失败: %v", err)
+	}
+
+	// 测试PrintLsMatch
+	t.Log("测试PrintLsMatch（匹配*.txt）:")
+	err = PrintLsMatch(zipFile, "*.txt")
+	if err != nil {
+		t.Fatalf("PrintLsMatch失败: %v", err)
+	}
+
+	// 测试PrintLlMatch
+	t.Log("测试PrintLlMatch（匹配file?.txt）:")
+	err = PrintLlMatch(zipFile, "file?.txt")
+	if err != nil {
+		t.Fatalf("PrintLlMatch失败: %v", err)
+	}
+
+	// 测试PrintInfo（简洁样式）
+	t.Log("测试PrintInfo（压缩包信息+文件列表，简洁样式）:")
+	err = PrintInfo(zipFile)
+	if err != nil {
+		t.Fatalf("PrintInfo失败: %v", err)
+	}
+
+	// 测试PrintInfoDetailed（详细样式）
+	t.Log("测试PrintInfoDetailed（压缩包信息+文件列表，详细样式）:")
+	err = PrintInfoDetailed(zipFile)
+	if err != nil {
+		t.Fatalf("PrintInfoDetailed失败: %v", err)
+	}
+
+	// 测试PrintInfoLimit
+	t.Log("测试PrintInfoLimit（压缩包信息+限制3个文件）:")
+	err = PrintInfoLimit(zipFile, 3)
+	if err != nil {
+		t.Fatalf("PrintInfoLimit失败: %v", err)
+	}
+
+	// 测试PrintInfoDetailedLimit
+	t.Log("测试PrintInfoDetailedLimit（压缩包信息+限制2个文件，详细样式）:")
+	err = PrintInfoDetailedLimit(zipFile, 2)
+	if err != nil {
+		t.Fatalf("PrintInfoDetailedLimit失败: %v", err)
+	}
+
+	// 测试PrintInfoMatch
+	t.Log("测试PrintInfoMatch（压缩包信息+匹配*.txt）:")
+	err = PrintInfoMatch(zipFile, "*.txt")
+	if err != nil {
+		t.Fatalf("PrintInfoMatch失败: %v", err)
+	}
+
+	// 测试PrintInfoDetailedMatch
+	t.Log("测试PrintInfoDetailedMatch（压缩包信息+匹配file?.txt，详细样式）:")
+	err = PrintInfoDetailedMatch(zipFile, "file?.txt")
+	if err != nil {
+		t.Fatalf("PrintInfoDetailedMatch失败: %v", err)
+	}
+}
+
+// TestPrintFunctionsWithDifferentFormats 测试不同格式的打印函数
+func TestPrintFunctionsWithDifferentFormats(t *testing.T) {
+	tempDir := t.TempDir()
+
+	// 创建测试文件
+	srcFile := filepath.Join(tempDir, "format_test.txt")
+	if err := os.WriteFile(srcFile, []byte("格式测试内容"), 0644); err != nil {
+		t.Fatal(err)
+	}
+
+	// 测试不同格式
+	formats := []struct {
+		name string
+		ext  string
+	}{
+		{"ZIP", ".zip"},
+		{"TAR", ".tar"},
+		{"TGZ", ".tgz"},
+		{"GZ", ".gz"},
+	}
+
+	for _, format := range formats {
+		t.Run(format.name, func(t *testing.T) {
+			archiveFile := filepath.Join(tempDir, "format_test"+format.ext)
+
+			// 创建压缩文件
+			err := Pack(archiveFile, srcFile)
+			if err != nil {
+				t.Fatalf("创建%s文件失败: %v", format.name, err)
+			}
+
+			// 测试各种打印函数
+			t.Logf("测试%s格式的打印函数:", format.name)
+
+			// PrintArchiveInfo
+			err = PrintArchiveInfo(archiveFile)
+			if err != nil {
+				t.Errorf("PrintArchiveInfo失败: %v", err)
+			}
+
+			// PrintLs
+			err = PrintLs(archiveFile)
+			if err != nil {
+				t.Errorf("PrintLs失败: %v", err)
+			}
+
+			// PrintLl
+			err = PrintLl(archiveFile)
+			if err != nil {
+				t.Errorf("PrintLl失败: %v", err)
+			}
+
+			// PrintInfo
+			err = PrintInfo(archiveFile)
+			if err != nil {
+				t.Errorf("PrintInfo失败: %v", err)
+			}
+
+			// PrintInfoDetailed
+			err = PrintInfoDetailed(archiveFile)
+			if err != nil {
+				t.Errorf("PrintInfoDetailed失败: %v", err)
+			}
+		})
+	}
+}
+
 // BenchmarkList 性能基准测试
 func BenchmarkList(b *testing.B) {
 	tempDir := b.TempDir()
@@ -684,4 +1032,48 @@ func BenchmarkListLargeArchive(b *testing.B) {
 			b.Fatal("应该返回条目")
 		}
 	}
+}
+
+// BenchmarkPrintFunctions 打印函数性能测试
+func BenchmarkPrintFunctions(b *testing.B) {
+	tempDir := b.TempDir()
+
+	// 创建测试文件
+	srcFile := filepath.Join(tempDir, "print_benchmark.txt")
+	if err := os.WriteFile(srcFile, []byte("打印函数性能测试"), 0644); err != nil {
+		b.Fatal(err)
+	}
+
+	// 创建ZIP文件
+	zipFile := filepath.Join(tempDir, "print_benchmark.zip")
+	if err := Pack(zipFile, srcFile); err != nil {
+		b.Fatal(err)
+	}
+
+	b.Run("PrintLs", func(b *testing.B) {
+		for i := 0; i < b.N; i++ {
+			err := PrintLs(zipFile)
+			if err != nil {
+				b.Fatal(err)
+			}
+		}
+	})
+
+	b.Run("PrintLl", func(b *testing.B) {
+		for i := 0; i < b.N; i++ {
+			err := PrintLl(zipFile)
+			if err != nil {
+				b.Fatal(err)
+			}
+		}
+	})
+
+	b.Run("PrintInfo", func(b *testing.B) {
+		for i := 0; i < b.N; i++ {
+			err := PrintInfo(zipFile)
+			if err != nil {
+				b.Fatal(err)
+			}
+		}
+	})
 }
