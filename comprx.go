@@ -241,15 +241,10 @@ func (c *Comprx) Unpack(src string, dst string) error {
 }
 
 // ==============================================
-// 全局默认压缩器
+// 全局便捷函数 - 线程安全版本
 // ==============================================
 
-var (
-	defaultComprxWithProgress    = New().WithProgressAndStyle(true, types.ProgressStyleText)  // 默认压缩器，启用进度条
-	defaultComprxWithoutProgress = New().WithProgressAndStyle(false, types.ProgressStyleText) // 默认压缩器，禁用进度条
-)
-
-// Pack 压缩文件或目录(禁用进度条)
+// Pack 压缩文件或目录(禁用进度条) - 线程安全
 //
 // 参数:
 //   - dst: 目标文件路径
@@ -258,22 +253,24 @@ var (
 // 返回:
 //   - error: 错误信息
 func Pack(dst string, src string) error {
-	return defaultComprxWithoutProgress.Pack(dst, src)
+	comprx := New().WithProgressAndStyle(false, types.ProgressStyleText)
+	return comprx.Pack(dst, src)
 }
 
-// Unpack 解压文件(禁用进度条)
+// Unpack 解压文件(禁用进度条) - 线程安全
 //
 // 参数:
 //   - src: 源文件路径
 //   - dst: 目标目录路径
 //
-// 错误:
+// 返回:
 //   - error: 错误信息
 func Unpack(src string, dst string) error {
-	return defaultComprxWithoutProgress.Unpack(src, dst)
+	comprx := New().WithProgressAndStyle(false, types.ProgressStyleText)
+	return comprx.Unpack(src, dst)
 }
 
-// PackWithProgress 压缩文件或目录(启用进度条)
+// PackWithProgress 压缩文件或目录(启用进度条) - 线程安全
 //
 // 参数:
 //   - dst: 目标文件路径
@@ -282,17 +279,19 @@ func Unpack(src string, dst string) error {
 // 返回:
 //   - error: 错误信息
 func PackWithProgress(dst string, src string) error {
-	return defaultComprxWithProgress.Pack(dst, src)
+	comprx := New().WithProgressAndStyle(true, types.ProgressStyleText)
+	return comprx.Pack(dst, src)
 }
 
-// UnpackWithProgress 解压文件(启用进度条)
+// UnpackWithProgress 解压文件(启用进度条) - 线程安全
 //
 // 参数:
 //   - src: 源文件路径
 //   - dst: 目标目录路径
 //
-// 错误:
+// 返回:
 //   - error: 错误信息
 func UnpackWithProgress(src string, dst string) error {
-	return defaultComprxWithProgress.Unpack(src, dst)
+	comprx := New().WithProgressAndStyle(true, types.ProgressStyleText)
+	return comprx.Unpack(src, dst)
 }
