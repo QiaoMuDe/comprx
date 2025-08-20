@@ -50,6 +50,9 @@ func Tgz(dst string, src string, cfg *config.Config) error {
 		return fmt.Errorf("创建目标目录失败: %w", err)
 	}
 
+	// 打印压缩文件信息
+	cfg.Progress.Archive(dst)
+
 	// 创建 TGZ 文件
 	tgzFile, err := os.Create(dst)
 	if err != nil {
@@ -71,10 +74,11 @@ func Tgz(dst string, src string, cfg *config.Config) error {
 	// 根据源路径类型处理
 	var tgzErr error
 	if srcInfo.IsDir() {
-		// 遍历目录并添加文件到 TGZ 包（带大小验证）
-		tgzErr = walkDirectoryForTgzWithValidation(src, tarWriter, cfg)
+		// 遍历目录并添加文件到 TGZ 包
+		tgzErr = walkDirectoryForTgz(src, tarWriter, cfg)
 	} else {
 		// 单文件处理逻辑
+		cfg.Progress.Adding(src) // 添加文件到进度条
 		tgzErr = processRegularFile(tarWriter, src, filepath.Base(src), srcInfo)
 	}
 
@@ -212,7 +216,7 @@ func processSpecialFile(tarWriter *tar.Writer, headerName string, info os.FileIn
 	return nil
 }
 
-// walkDirectoryForTgzWithValidation 遍历目录并处理文件到TGZ包（带大小验证）
+// walkDirectoryForTgz 遍历目录并处理文件到TGZ包
 //
 // 参数:
 //   - src: 源目录路径
@@ -221,7 +225,7 @@ func processSpecialFile(tarWriter *tar.Writer, headerName string, info os.FileIn
 //
 // 返回值:
 //   - error: 遍历过程中发生的错误
-func walkDirectoryForTgzWithValidation(src string, tarWriter *tar.Writer, cfg *config.Config) error {
+func walkDirectoryForTgz(src string, tarWriter *tar.Writer, cfg *config.Config) error {
 	return filepath.WalkDir(src, func(path string, entry os.DirEntry, err error) error {
 		if err != nil {
 			// 如果不存在则忽略
@@ -243,32 +247,40 @@ func walkDirectoryForTgzWithValidation(src string, tarWriter *tar.Writer, cfg *c
 
 		// 根据文件类型处理
 		switch {
-		case entry.Type().IsRegular(): // 处理普通文件
+		// 处理普通文件
+		case entry.Type().IsRegular():
 			info, err := entry.Info()
 			if err != nil {
 				return fmt.Errorf("处理文件 '%s' 时出错 - 获取文件信息失败: %w", path, err)
 			}
+			cfg.Progress.Adding(headerName) // 更新进度
 			return processRegularFile(tarWriter, path, headerName, info)
 
-		case entry.IsDir(): // 处理目录
+		// 处理目录
+		case entry.IsDir():
 			info, err := entry.Info()
 			if err != nil {
 				return fmt.Errorf("处理目录 '%s' 时出错 - 获取目录信息失败: %w", path, err)
 			}
+			cfg.Progress.Storing(headerName) // 更新进度
 			return processDirectory(tarWriter, headerName, info)
 
-		case entry.Type()&os.ModeSymlink != 0: // 处理符号链接
+		// 处理符号链接
+		case entry.Type()&os.ModeSymlink != 0:
 			info, err := entry.Info()
 			if err != nil {
 				return fmt.Errorf("处理符号链接 '%s' 时出错 - 获取文件信息失败: %w", path, err)
 			}
+			cfg.Progress.Adding(headerName) // 更新进度
 			return processSymlink(tarWriter, path, headerName, info)
 
-		default: // 处理特殊文件
+		// 处理特殊文件
+		default:
 			info, err := entry.Info()
 			if err != nil {
 				return fmt.Errorf("处理特殊文件 '%s' 时出错 - 获取文件信息失败: %w", path, err)
 			}
+			cfg.Progress.Adding(headerName) // 更新进度
 			return processSpecialFile(tarWriter, headerName, info)
 		}
 	})

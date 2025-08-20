@@ -16,11 +16,14 @@ import (
 // 参数:
 //   - zipFilePath: 要解压缩的 ZIP 文件路径
 //   - targetDir: 解压缩后的目标目录路径
-//   - config: 解压缩配置
+//   - cfg: 解压缩配置
 //
 // 返回值:
 //   - error: 解压缩过程中发生的错误
-func Unzip(zipFilePath string, targetDir string, config *config.Config) error {
+func Unzip(zipFilePath string, targetDir string, cfg *config.Config) error {
+	// 打印压缩文件信息
+	cfg.Progress.Archive(zipFilePath)
+
 	// 打开 ZIP 文件
 	zipReader, err := zip.OpenReader(zipFilePath)
 	if err != nil {
@@ -32,9 +35,6 @@ func Unzip(zipFilePath string, targetDir string, config *config.Config) error {
 	if err := utils.EnsureDir(targetDir); err != nil {
 		return fmt.Errorf("创建目标目录失败: %w", err)
 	}
-
-	// 打印压缩文件信息
-	config.Progress.Archive(zipFilePath)
 
 	// var bar *progressbar.ProgressBar
 	// if p.Enabled && p.BarStyle != types.StyleText {
@@ -54,7 +54,7 @@ func Unzip(zipFilePath string, targetDir string, config *config.Config) error {
 	// 遍历 ZIP 文件中的每个文件或目录
 	for _, file := range zipReader.File {
 		// 安全的路径验证和拼接
-		targetPath, err := utils.ValidatePathSimple(targetDir, file.Name, config.DisablePathValidation)
+		targetPath, err := utils.ValidatePathSimple(targetDir, file.Name, cfg.DisablePathValidation)
 		if err != nil {
 			return fmt.Errorf("处理文件 '%s' 时路径验证失败: %w", file.Name, err)
 		}
@@ -64,19 +64,24 @@ func Unzip(zipFilePath string, targetDir string, config *config.Config) error {
 
 		// 使用 switch 语句处理不同类型的文件
 		switch {
-		case mode.IsDir(): // 处理目录
-			config.Progress.Creating(targetPath)
+		// 处理目录
+		case mode.IsDir():
+			cfg.Progress.Creating(targetPath) // 更新进度
 			if err := extractDirectory(targetPath, file.Name); err != nil {
 				return err
 			}
-		case mode&os.ModeSymlink != 0: // 处理软链接
-			config.Progress.Inflating(targetPath)
+
+		// 处理软链接
+		case mode&os.ModeSymlink != 0:
+			cfg.Progress.Inflating(targetPath) // 更新进度
 			if err := extractSymlink(file, targetPath); err != nil {
 				return err
 			}
-		default: // 处理普通文件
-			config.Progress.Inflating(targetPath)
-			if err := extractRegularFileWithWriter(file, targetPath, mode, config); err != nil {
+
+		// 处理普通文件
+		default:
+			cfg.Progress.Inflating(targetPath) // 更新进度
+			if err := extractRegularFileWithWriter(file, targetPath, mode, cfg); err != nil {
 				return err
 			}
 		}

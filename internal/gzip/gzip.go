@@ -54,6 +54,9 @@ func Gzip(dst string, src string, cfg *config.Config) error {
 		return fmt.Errorf("创建目标目录失败: %w", err)
 	}
 
+	// 打印压缩文件信息
+	cfg.Progress.Compressing(dst)
+
 	// 创建 GZIP 文件
 	gzipFile, err := os.Create(dst)
 	if err != nil {
@@ -86,6 +89,9 @@ func Gzip(dst string, src string, cfg *config.Config) error {
 	bufferSize := utils.GetBufferSize(fileSize)
 	buffer := utils.GetBuffer(bufferSize)
 	defer utils.PutBuffer(buffer)
+
+	// 更新进度
+	cfg.Progress.Adding(src)
 
 	// 复制文件内容到GZIP写入器
 	if _, err := io.CopyBuffer(gzipWriter, srcFile, buffer); err != nil {

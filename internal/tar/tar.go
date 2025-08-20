@@ -16,11 +16,11 @@ import (
 // 参数:
 //   - dst: 生成的TAR文件路径
 //   - src: 需要归档的源路径
-//   - config: 压缩配置指针
+//   - cfg: 压缩配置指针
 //
 // 返回值:
 //   - error: 操作过程中遇到的错误
-func Tar(dst string, src string, config *config.Config) error {
+func Tar(dst string, src string, cfg *config.Config) error {
 	// 确保路径为绝对路径
 	var absErr error
 	if dst, absErr = utils.EnsureAbsPath(dst, "TAR文件路径"); absErr != nil {
@@ -33,7 +33,7 @@ func Tar(dst string, src string, config *config.Config) error {
 	// 检查目标文件是否已存在
 	if _, err := os.Stat(dst); err == nil {
 		// 文件已存在，检查是否允许覆盖
-		if !config.OverwriteExisting {
+		if !cfg.OverwriteExisting {
 			return fmt.Errorf("目标文件已存在且不允许覆盖: %s", dst)
 		}
 	}
@@ -42,6 +42,9 @@ func Tar(dst string, src string, config *config.Config) error {
 	if err := utils.EnsureDir(filepath.Dir(dst)); err != nil {
 		return fmt.Errorf("创建目标目录失败: %w", err)
 	}
+
+	// 打印压缩文件信息
+	cfg.Progress.Archive(dst)
 
 	// 创建 TAR 文件
 	tarFile, err := os.Create(dst)
@@ -64,10 +67,11 @@ func Tar(dst string, src string, config *config.Config) error {
 	var tarErr error
 	if srcInfo.IsDir() {
 		// 遍历目录并添加文件到 TAR 包
-		tarErr = walkDirectoryForTar(src, tarWriter)
+		tarErr = walkDirectoryForTar(src, tarWriter, cfg)
 	} else {
 		// 单文件处理逻辑
-		tarErr = processRegularFileWithValidation(tarWriter, src, filepath.Base(src), srcInfo)
+		cfg.Progress.Adding(src)
+		tarErr = processRegularFile(tarWriter, src, filepath.Base(src), srcInfo)
 	}
 
 	// 检查是否有错误发生
@@ -163,10 +167,11 @@ func processSpecialFile(tarWriter *tar.Writer, headerName string, info os.FileIn
 // 参数:
 //   - src: string - 源目录路径
 //   - tarWriter: *tar.Writer - TAR 文件写入器
+//   - cfg: *config.Config - 配置
 //
 // 返回值:
 //   - error - 操作过程中遇到的错误
-func walkDirectoryForTar(src string, tarWriter *tar.Writer) error {
+func walkDirectoryForTar(src string, tarWriter *tar.Writer, cfg *config.Config) error {
 	return filepath.WalkDir(src, func(path string, entry os.DirEntry, err error) error {
 		if err != nil {
 			// 如果不存在则忽略
@@ -188,38 +193,46 @@ func walkDirectoryForTar(src string, tarWriter *tar.Writer) error {
 
 		// 根据文件类型处理
 		switch {
-		case entry.Type().IsRegular(): // 处理普通文件
+		// 处理普通文件
+		case entry.Type().IsRegular():
 			info, err := entry.Info()
 			if err != nil {
 				return fmt.Errorf("处理文件 '%s' 时出错 - 获取文件信息失败: %w", path, err)
 			}
-			return processRegularFileWithValidation(tarWriter, path, headerName, info)
+			cfg.Progress.Adding(headerName) // 更新进度
+			return processRegularFile(tarWriter, path, headerName, info)
 
-		case entry.IsDir(): // 处理目录
+		// 处理目录
+		case entry.IsDir():
 			info, err := entry.Info()
 			if err != nil {
 				return fmt.Errorf("处理目录 '%s' 时出错 - 获取目录信息失败: %w", path, err)
 			}
+			cfg.Progress.Storing(headerName) // 更新进度
 			return processDirectory(tarWriter, headerName, info)
 
-		case entry.Type()&os.ModeSymlink != 0: // 处理符号链接
+			// 处理符号链接
+		case entry.Type()&os.ModeSymlink != 0:
 			info, err := entry.Info()
 			if err != nil {
 				return fmt.Errorf("处理符号链接 '%s' 时出错 - 获取文件信息失败: %w", path, err)
 			}
+			cfg.Progress.Adding(headerName) // 更新进度
 			return processSymlink(tarWriter, path, headerName, info)
 
-		default: // 处理特殊文件
+		// 处理特殊文件
+		default:
 			info, err := entry.Info()
 			if err != nil {
 				return fmt.Errorf("处理特殊文件 '%s' 时出错 - 获取文件信息失败: %w", path, err)
 			}
+			cfg.Progress.Adding(headerName) // 更新进度
 			return processSpecialFile(tarWriter, headerName, info)
 		}
 	})
 }
 
-// processRegularFileWithValidation 处理普通文件（带大小验证）
+// processRegularFile 处理普通文件
 //
 // 参数:
 //   - tarWriter: *tar.Writer - TAR 文件写入器
@@ -229,7 +242,7 @@ func walkDirectoryForTar(src string, tarWriter *tar.Writer) error {
 //
 // 返回值:
 //   - error - 操作过程中遇到的错误
-func processRegularFileWithValidation(tarWriter *tar.Writer, path, headerName string, info os.FileInfo) error {
+func processRegularFile(tarWriter *tar.Writer, path, headerName string, info os.FileInfo) error {
 	// 创建文件头
 	header, err := tar.FileInfoHeader(info, "")
 	if err != nil {

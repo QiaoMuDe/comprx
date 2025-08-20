@@ -17,11 +17,14 @@ import (
 // 参数:
 //   - tgzFilePath: 要解压缩的 TGZ 文件路径
 //   - targetDir: 解压缩后的目标目录路径
-//   - config: 解压缩配置
+//   - cfg: 解压缩配置
 //
 // 返回值:
 //   - error: 解压缩过程中发生的错误
-func Untgz(tgzFilePath string, targetDir string, config *config.Config) error {
+func Untgz(tgzFilePath string, targetDir string, cfg *config.Config) error {
+	// 打印压缩文件信息
+	cfg.Progress.Archive(tgzFilePath)
+
 	// 打开 TGZ 文件
 	tgzFile, err := os.Open(tgzFilePath)
 	if err != nil {
@@ -55,7 +58,7 @@ func Untgz(tgzFilePath string, targetDir string, config *config.Config) error {
 		}
 
 		// 安全的路径验证和拼接
-		targetPath, err := utils.ValidatePathSimple(targetDir, header.Name, config.DisablePathValidation)
+		targetPath, err := utils.ValidatePathSimple(targetDir, header.Name, cfg.DisablePathValidation)
 		if err != nil {
 			return fmt.Errorf("处理文件 '%s' 时路径验证失败: %w", header.Name, err)
 		}
@@ -63,21 +66,29 @@ func Untgz(tgzFilePath string, targetDir string, config *config.Config) error {
 		// 使用 switch 语句处理不同类型的文件
 		switch header.Typeflag {
 		case tar.TypeDir: // 处理目录
+			cfg.Progress.Creating(targetPath) // 显示进度
 			if err := extractDirectory(targetPath, header.Name); err != nil {
 				return err
 			}
+
 		case tar.TypeReg: // 处理普通文件
-			if err := extractRegularFile(tarReader, targetPath, header, config); err != nil {
+			cfg.Progress.Inflating(targetPath) // 显示进度
+			if err := extractRegularFile(tarReader, targetPath, header, cfg); err != nil {
 				return err
 			}
+
 		case tar.TypeSymlink: // 处理符号链接
+			cfg.Progress.Inflating(targetPath) // 显示进度
 			if err := extractSymlink(header, targetPath); err != nil {
 				return err
 			}
+
 		case tar.TypeLink: // 处理硬链接
+			cfg.Progress.Inflating(targetPath) // 显示进度
 			if err := extractHardlink(header, targetPath, targetDir); err != nil {
 				return err
 			}
+
 		default:
 			// 对于其他类型的文件，我们跳过处理
 			fmt.Printf("跳过不支持的文件类型: %s (类型: %c)\n", header.Name, header.Typeflag)

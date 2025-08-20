@@ -22,6 +22,9 @@ import (
 // 返回值:
 //   - error: 解压缩过程中发生的错误
 func Ungzip(gzipFilePath string, targetPath string, config *config.Config) error {
+	// 打印压缩文件信息
+	config.Progress.Compressing(gzipFilePath)
+
 	// 打开 GZIP 文件（同时检查文件是否存在）
 	gzipFile, err := os.Open(gzipFilePath)
 	if err != nil {
@@ -86,11 +89,13 @@ func Ungzip(gzipFilePath string, targetPath string, config *config.Config) error
 	defer func() { _ = targetFile.Close() }()
 
 	// 使用之前获取的gzipInfo来估算缓冲区大小
-
 	// 获取缓冲区大小并创建缓冲区
 	bufferSize := utils.GetBufferSize(gzipInfo.Size())
 	buffer := utils.GetBuffer(bufferSize)
 	defer utils.PutBuffer(buffer)
+
+	// 打印解压缩进度
+	config.Progress.Inflating(targetPath)
 
 	// 解压缩文件内容
 	if _, err := io.CopyBuffer(targetFile, gzipReader, buffer); err != nil {

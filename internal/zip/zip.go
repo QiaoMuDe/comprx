@@ -17,11 +17,11 @@ import (
 // 参数:
 //   - dst: 生成的ZIP文件路径
 //   - src: 需要压缩的源路径
-//   - config: 压缩配置指针
+//   - cfg: 压缩配置指针
 //
 // 返回值:
 //   - error: 操作过程中遇到的错误
-func Zip(dst string, src string, config *config.Config) error {
+func Zip(dst string, src string, cfg *config.Config) error {
 	// 确保路径为绝对路径
 	var absErr error
 	if dst, absErr = utils.EnsureAbsPath(dst, "ZIP文件路径"); absErr != nil {
@@ -34,7 +34,7 @@ func Zip(dst string, src string, config *config.Config) error {
 	// 检查目标文件是否已存在
 	if _, err := os.Stat(dst); err == nil {
 		// 文件已存在，检查是否允许覆盖
-		if !config.OverwriteExisting {
+		if !cfg.OverwriteExisting {
 			return fmt.Errorf("目标文件已存在且不允许覆盖: %s", dst)
 		}
 	}
@@ -45,7 +45,7 @@ func Zip(dst string, src string, config *config.Config) error {
 	}
 
 	// 打印压缩文件信息
-	config.Progress.Archive(dst)
+	cfg.Progress.Archive(dst)
 
 	// 创建 ZIP 文件
 	zipFile, err := os.Create(dst)
@@ -68,10 +68,11 @@ func Zip(dst string, src string, config *config.Config) error {
 	var zipErr error
 	if srcInfo.IsDir() {
 		// 遍历目录并添加文件到 ZIP 包
-		zipErr = walkDirectoryForZip(src, zipWriter, config)
+		zipErr = walkDirectoryForZip(src, zipWriter, cfg)
 	} else {
 		// 单文件处理逻辑
-		zipErr = processRegularFile(zipWriter, src, filepath.Base(src), srcInfo, config)
+		cfg.Progress.Adding(src)
+		zipErr = processRegularFile(zipWriter, src, filepath.Base(src), srcInfo, cfg)
 	}
 
 	// 检查是否有错误发生

@@ -13,7 +13,6 @@ const (
 	labelArchive     = "Archive:    " // 表示操作压缩包
 	labelInflating   = "  inflating:" // 表示操作解压文件
 	labelCreating    = "   creating:" // 表示操作创建目录
-	labelExtracting  = " extracting:" // 表示操作解压文件(TAR)
 	labelAdding      = "     adding:" // 表示操作添加文件
 	labelStoring     = "    storing:" // 表示操作存储目录
 	labelCompressing = "compressing:" // 表示操作压缩文件
@@ -173,17 +172,6 @@ func (s *Progress) Creating(dirPath string) {
 		return
 	}
 	fmt.Printf("%s %s\n", labelCreating, dirPath)
-}
-
-// Extracting 显示提取文件(TAR)
-//
-// 参数:
-//   - filePath: 文件路径
-func (s *Progress) Extracting(filePath string) {
-	if !s.Enabled || s.BarStyle != types.StyleText {
-		return
-	}
-	fmt.Printf("%s %s\n", labelExtracting, filePath)
 }
 
 // ======================================================

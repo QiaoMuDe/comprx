@@ -17,11 +17,14 @@ import (
 // 参数:
 //   - bz2FilePath: 要解压缩的 BZIP2 文件路径
 //   - targetPath: 解压缩后的目标文件路径
-//   - config: 解压缩配置
+//   - cfg: 解压缩配置
 //
 // 返回值:
 //   - error: 解压缩过程中发生的错误
-func Unbz2(bz2FilePath string, targetPath string, config *config.Config) error {
+func Unbz2(bz2FilePath string, targetPath string, cfg *config.Config) error {
+	// 打印压缩文件信息
+	cfg.Progress.Compressing(bz2FilePath)
+
 	// 打开 BZIP2 文件（同时检查文件是否存在）
 	bz2File, err := os.Open(bz2FilePath)
 	if err != nil {
@@ -47,19 +50,19 @@ func Unbz2(bz2FilePath string, targetPath string, config *config.Config) error {
 			baseName = strings.TrimSuffix(baseName, ".bzip2")
 
 			// 添加安全验证
-			validatedPath, err := utils.ValidatePathSimple(targetPath, baseName, config.DisablePathValidation)
+			validatedPath, err := utils.ValidatePathSimple(targetPath, baseName, cfg.DisablePathValidation)
 			if err != nil {
 				return fmt.Errorf("BZIP2文件名包含不安全的路径: %w", err)
 			}
 			targetPath = validatedPath
 
 			// 重新检查生成的目标文件是否存在
-			if _, err := os.Stat(targetPath); err == nil && !config.OverwriteExisting {
+			if _, err := os.Stat(targetPath); err == nil && !cfg.OverwriteExisting {
 				return fmt.Errorf("目标文件已存在且不允许覆盖: %s", targetPath)
 			}
 		} else {
 			// 目标是文件，检查是否允许覆盖
-			if !config.OverwriteExisting {
+			if !cfg.OverwriteExisting {
 				return fmt.Errorf("目标文件已存在且不允许覆盖: %s", targetPath)
 			}
 		}
@@ -82,6 +85,9 @@ func Unbz2(bz2FilePath string, targetPath string, config *config.Config) error {
 	bufferSize := utils.GetBufferSize(bz2Info.Size())
 	buffer := utils.GetBuffer(bufferSize)
 	defer utils.PutBuffer(buffer)
+
+	// 打印解压缩进度
+	cfg.Progress.Inflating(targetPath)
 
 	// 解压缩文件内容到目标文件
 	if _, err := io.CopyBuffer(targetFile, bz2Reader, buffer); err != nil {
