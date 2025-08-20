@@ -29,7 +29,7 @@ const (
 	// DefaultBufferSize 默认缓冲区大小 (32KB)
 	// 用于读取压缩文件内容时的缓冲区
 	DefaultBufferSize = 32 * 1024
-	
+
 	// DefaultFileMode 默认文件权限 (0644)
 	// 用于不保存文件权限的压缩格式 (如 GZIP, BZ2)
 	DefaultFileMode = 0644

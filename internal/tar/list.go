@@ -75,12 +75,71 @@ func ListTar(archivePath string) (*types.ArchiveInfo, error) {
 
 // ListTarLimit 获取TAR压缩包指定数量的文件信息
 func ListTarLimit(archivePath string, limit int) (*types.ArchiveInfo, error) {
-	archiveInfo, err := ListTar(archivePath)
+	// 确保路径为绝对路径
+	absPath, err := utils.EnsureAbsPath(archivePath, "TAR文件路径")
 	if err != nil {
 		return nil, err
 	}
 
-	archiveInfo.Files = utils.LimitFiles(archiveInfo.Files, limit)
+	// 打开TAR文件
+	file, err := os.Open(absPath)
+	if err != nil {
+		return nil, fmt.Errorf("打开TAR文件失败: %w", err)
+	}
+	defer func() { _ = file.Close() }()
+
+	// 获取压缩包文件信息
+	stat, err := file.Stat()
+	if err != nil {
+		return nil, fmt.Errorf("获取TAR文件信息失败: %w", err)
+	}
+
+	// 创建TAR读取器
+	tarReader := tar.NewReader(file)
+
+	archiveInfo := &types.ArchiveInfo{
+		Type:           types.CompressTypeTar,
+		CompressedSize: stat.Size(),
+		Files:          make([]types.FileInfo, 0, utils.DefaultFileCapacity),
+	}
+
+	// 遍历TAR文件中的每个条目，但限制数量
+	count := 0
+	for {
+		header, err := tarReader.Next()
+		if err == io.EOF {
+			break
+		}
+		if err != nil {
+			return nil, fmt.Errorf("读取TAR条目失败: %w", err)
+		}
+
+		// 达到限制数量就提前退出
+		if limit > 0 && count >= limit {
+			break
+		}
+
+		fileInfo := types.FileInfo{
+			Name:           header.Name,
+			Size:           header.Size,
+			CompressedSize: header.Size, // TAR不压缩，压缩大小等于原始大小
+			ModTime:        header.ModTime,
+			Mode:           header.FileInfo().Mode(),
+			IsDir:          header.FileInfo().IsDir(),
+			IsSymlink:      header.Typeflag == tar.TypeSymlink || header.Typeflag == tar.TypeLink,
+		}
+
+		// 如果是符号链接，设置链接目标
+		if fileInfo.IsSymlink {
+			fileInfo.LinkTarget = header.Linkname
+		}
+
+		archiveInfo.Files = append(archiveInfo.Files, fileInfo)
+		archiveInfo.TotalSize += fileInfo.Size
+		count++
+	}
+
+	archiveInfo.TotalFiles = count
 	return archiveInfo, nil
 }
 
