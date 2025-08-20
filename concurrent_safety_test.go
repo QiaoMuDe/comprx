@@ -20,7 +20,11 @@ func TestConcurrentPackOperations(t *testing.T) {
 	if err != nil {
 		t.Fatalf("创建临时目录失败: %v", err)
 	}
-	defer os.RemoveAll(tempDir)
+	defer func() {
+		if err := os.RemoveAll(tempDir); err != nil {
+			t.Logf("清理临时目录失败: %v", err)
+		}
+	}()
 
 	// 准备测试数据
 	testFiles := setupTestFiles(t, tempDir, 10)
@@ -70,7 +74,11 @@ func TestConcurrentPackWithProgress(t *testing.T) {
 	if err != nil {
 		t.Fatalf("创建临时目录失败: %v", err)
 	}
-	defer os.RemoveAll(tempDir)
+	defer func() {
+		if err := os.RemoveAll(tempDir); err != nil {
+			t.Logf("清理临时目录失败: %v", err)
+		}
+	}()
 
 	testFiles := setupTestFiles(t, tempDir, 5)
 
@@ -107,7 +115,11 @@ func TestConcurrentUnpackOperations(t *testing.T) {
 	if err != nil {
 		t.Fatalf("创建临时目录失败: %v", err)
 	}
-	defer os.RemoveAll(tempDir)
+	defer func() {
+		if err := os.RemoveAll(tempDir); err != nil {
+			t.Logf("清理临时目录失败: %v", err)
+		}
+	}()
 
 	// 先创建一些压缩文件
 	testFiles := setupTestFiles(t, tempDir, 5)
@@ -155,7 +167,11 @@ func TestConcurrentMixedOperations(t *testing.T) {
 	if err != nil {
 		t.Fatalf("创建临时目录失败: %v", err)
 	}
-	defer os.RemoveAll(tempDir)
+	defer func() {
+		if err := os.RemoveAll(tempDir); err != nil {
+			t.Logf("清理临时目录失败: %v", err)
+		}
+	}()
 
 	testFiles := setupTestFiles(t, tempDir, 8)
 
@@ -207,7 +223,11 @@ func TestConcurrentInstanceIsolation(t *testing.T) {
 	if err != nil {
 		t.Fatalf("创建临时目录失败: %v", err)
 	}
-	defer os.RemoveAll(tempDir)
+	defer func() {
+		if err := os.RemoveAll(tempDir); err != nil {
+			t.Logf("清理临时目录失败: %v", err)
+		}
+	}()
 
 	testFile := setupTestFiles(t, tempDir, 1)[0]
 
@@ -269,7 +289,11 @@ func TestRaceConditionDetection(t *testing.T) {
 	if err != nil {
 		t.Fatalf("创建临时目录失败: %v", err)
 	}
-	defer os.RemoveAll(tempDir)
+	defer func() {
+		if err := os.RemoveAll(tempDir); err != nil {
+			t.Logf("清理临时目录失败: %v", err)
+		}
+	}()
 
 	testFiles := setupTestFiles(t, tempDir, 3)
 
@@ -288,15 +312,15 @@ func TestRaceConditionDetection(t *testing.T) {
 			// 随机选择不同的函数调用
 			switch id % 4 {
 			case 0:
-				Pack(dstFile, srcFile)
+				_ = Pack(dstFile, srcFile)
 			case 1:
-				PackWithProgress(dstFile, srcFile)
+				_ = PackWithProgress(dstFile, srcFile)
 			case 2:
 				comprx := New().WithProgressAndStyle(true, types.ProgressStyleUnicode)
-				comprx.Pack(dstFile, srcFile)
+				_ = comprx.Pack(dstFile, srcFile)
 			case 3:
 				comprx := New().WithOverwriteExisting(true)
-				comprx.Pack(dstFile, srcFile)
+				_ = comprx.Pack(dstFile, srcFile)
 			}
 		}(i)
 	}
@@ -311,7 +335,11 @@ func TestMemoryLeakDetection(t *testing.T) {
 	if err != nil {
 		t.Fatalf("创建临时目录失败: %v", err)
 	}
-	defer os.RemoveAll(tempDir)
+	defer func() {
+		if err := os.RemoveAll(tempDir); err != nil {
+			t.Logf("清理临时目录失败: %v", err)
+		}
+	}()
 
 	testFile := setupTestFiles(t, tempDir, 1)[0]
 
@@ -325,7 +353,7 @@ func TestMemoryLeakDetection(t *testing.T) {
 	iterations := 100 // 减少迭代次数避免测试时间过长
 	for i := 0; i < iterations; i++ {
 		dstFile := filepath.Join(tempDir, fmt.Sprintf("memory_test_%d.zip", i))
-		Pack(dstFile, testFile)
+		_ = Pack(dstFile, testFile)
 	}
 
 	// 强制垃圾回收并检查内存
@@ -394,7 +422,11 @@ func BenchmarkConcurrentPack(b *testing.B) {
 	if err != nil {
 		b.Fatalf("创建临时目录失败: %v", err)
 	}
-	defer os.RemoveAll(tempDir)
+	defer func() {
+		if err := os.RemoveAll(tempDir); err != nil {
+			b.Logf("清理临时目录失败: %v", err)
+		}
+	}()
 
 	// 创建测试文件
 	testFile := filepath.Join(tempDir, "bench_test.txt")
@@ -412,7 +444,7 @@ func BenchmarkConcurrentPack(b *testing.B) {
 		i := 0
 		for pb.Next() {
 			dstFile := filepath.Join(tempDir, fmt.Sprintf("bench_%d.zip", i))
-			Pack(dstFile, testFile)
+			_ = Pack(dstFile, testFile)
 			i++
 		}
 	})

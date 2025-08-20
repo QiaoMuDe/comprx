@@ -15,7 +15,11 @@ func TestSimpleConcurrentSafety(t *testing.T) {
 	if err != nil {
 		t.Fatalf("创建临时目录失败: %v", err)
 	}
-	defer os.RemoveAll(tempDir)
+	defer func() {
+		if err := os.RemoveAll(tempDir); err != nil {
+			t.Logf("清理临时目录失败: %v", err)
+		}
+	}()
 
 	// 创建测试文件
 	testFile := filepath.Join(tempDir, "test.txt")
@@ -66,7 +70,11 @@ func TestProgressConcurrency(t *testing.T) {
 	if err != nil {
 		t.Fatalf("创建临时目录失败: %v", err)
 	}
-	defer os.RemoveAll(tempDir)
+	defer func() {
+		if err := os.RemoveAll(tempDir); err != nil {
+			t.Logf("清理临时目录失败: %v", err)
+		}
+	}()
 
 	// 创建测试文件
 	testFile := filepath.Join(tempDir, "test.txt")
@@ -105,7 +113,11 @@ func TestInstanceIsolation(t *testing.T) {
 	if err != nil {
 		t.Fatalf("创建临时目录失败: %v", err)
 	}
-	defer os.RemoveAll(tempDir)
+	defer func() {
+		if err := os.RemoveAll(tempDir); err != nil {
+			t.Logf("清理临时目录失败: %v", err)
+		}
+	}()
 
 	// 创建测试文件
 	testFile := filepath.Join(tempDir, "test.txt")
