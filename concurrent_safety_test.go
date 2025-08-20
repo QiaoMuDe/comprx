@@ -10,8 +10,44 @@ import (
 	"testing"
 	"time"
 
+	"gitee.com/MM-Q/comprx/internal/core"
 	"gitee.com/MM-Q/comprx/types"
 )
+
+// TestPackGlobalFunction 测试全局Pack函数
+func TestPackGlobalFunction(t *testing.T) {
+	tempDir := t.TempDir()
+
+	// 创建源文件
+	srcFile := filepath.Join(tempDir, "source.txt")
+	if err := os.WriteFile(srcFile, []byte("test content"), 0644); err != nil {
+		t.Fatal(err)
+	}
+
+	dstFile := filepath.Join(tempDir, "test.zip")
+
+	err := Pack(dstFile, srcFile)
+	if err != nil {
+		t.Errorf("不期望返回错误，但得到错误: %v", err)
+	}
+
+	// 检查文件是否创建
+	if _, err := os.Stat(dstFile); os.IsNotExist(err) {
+		t.Error("压缩文件未创建")
+	}
+}
+
+// TestUnpackGlobalFunction 测试全局Unpack函数
+func TestUnpackGlobalFunction(t *testing.T) {
+	tempDir := t.TempDir()
+	nonExistentFile := filepath.Join(tempDir, "nonexistent.zip")
+	targetDir := filepath.Join(tempDir, "target")
+
+	err := Unpack(nonExistentFile, targetDir)
+	if err == nil {
+		t.Error("期望返回错误，但没有错误")
+	}
+}
 
 // TestConcurrentPackOperations 测试并发压缩操作的安全性
 func TestConcurrentPackOperations(t *testing.T) {
@@ -242,7 +278,7 @@ func TestConcurrentInstanceIsolation(t *testing.T) {
 			defer wg.Done()
 
 			// 创建不同配置的实例
-			comprx := New()
+			comprx := core.New()
 			if id%2 == 0 {
 				comprx.WithProgressAndStyle(true, types.ProgressStyleText)
 				comprx.WithOverwriteExisting(true)
@@ -262,8 +298,8 @@ func TestConcurrentInstanceIsolation(t *testing.T) {
 			}
 
 			// 验证配置是否被其他goroutine影响
-			if (id%2 == 0 && !comprx.config.OverwriteExisting) ||
-				(id%2 == 1 && comprx.config.OverwriteExisting) {
+			if (id%2 == 0 && !comprx.Config.OverwriteExisting) ||
+				(id%2 == 1 && comprx.Config.OverwriteExisting) {
 				atomic.AddInt64(&configConflicts, 1)
 				t.Errorf("Goroutine %d: 配置被其他goroutine影响", id)
 			}
@@ -316,10 +352,10 @@ func TestRaceConditionDetection(t *testing.T) {
 			case 1:
 				_ = PackWithProgress(dstFile, srcFile)
 			case 2:
-				comprx := New().WithProgressAndStyle(true, types.ProgressStyleUnicode)
+				comprx := core.New().WithProgressAndStyle(true, types.ProgressStyleUnicode)
 				_ = comprx.Pack(dstFile, srcFile)
 			case 3:
-				comprx := New().WithOverwriteExisting(true)
+				comprx := core.New().WithOverwriteExisting(true)
 				_ = comprx.Pack(dstFile, srcFile)
 			}
 		}(i)

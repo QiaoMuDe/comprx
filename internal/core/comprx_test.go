@@ -1,4 +1,4 @@
-package comprx
+package core
 
 import (
 	"flag"
@@ -47,14 +47,14 @@ func TestNew(t *testing.T) {
 	if c == nil {
 		t.Fatal("New() 返回 nil")
 	}
-	if c.config == nil {
+	if c.Config == nil {
 		t.Fatal("config 未初始化")
 	}
-	if c.config.CompressionLevel != config.CompressionLevelDefault {
-		t.Errorf("期望压缩级别为 %v, 实际为 %v", config.CompressionLevelDefault, c.config.CompressionLevel)
+	if c.Config.CompressionLevel != config.CompressionLevelDefault {
+		t.Errorf("期望压缩级别为 %v, 实际为 %v", config.CompressionLevelDefault, c.Config.CompressionLevel)
 	}
-	if c.config.OverwriteExisting != false {
-		t.Errorf("期望 OverwriteExisting 为 false, 实际为 %v", c.config.OverwriteExisting)
+	if c.Config.OverwriteExisting != false {
+		t.Errorf("期望 OverwriteExisting 为 false, 实际为 %v", c.Config.OverwriteExisting)
 	}
 }
 
@@ -64,7 +64,7 @@ func TestNewComprx(t *testing.T) {
 	if c == nil {
 		t.Fatal("NewComprx() 返回 nil")
 	}
-	if c.config == nil {
+	if c.Config == nil {
 		t.Fatal("config 未初始化")
 	}
 }
@@ -78,13 +78,13 @@ func TestWithOverwriteExisting(t *testing.T) {
 	if result != c {
 		t.Error("WithOverwriteExisting 应该返回同一个实例")
 	}
-	if !c.config.OverwriteExisting {
+	if !c.Config.OverwriteExisting {
 		t.Error("OverwriteExisting 应该被设置为 true")
 	}
 
 	// 测试设置为 false
 	c.WithOverwriteExisting(false)
-	if c.config.OverwriteExisting {
+	if c.Config.OverwriteExisting {
 		t.Error("OverwriteExisting 应该被设置为 false")
 	}
 }
@@ -95,13 +95,13 @@ func TestSetOverwriteExisting(t *testing.T) {
 
 	// 测试设置为 true
 	c.SetOverwriteExisting(true)
-	if !c.config.OverwriteExisting {
+	if !c.Config.OverwriteExisting {
 		t.Error("OverwriteExisting 应该被设置为 true")
 	}
 
 	// 测试设置为 false
 	c.SetOverwriteExisting(false)
-	if c.config.OverwriteExisting {
+	if c.Config.OverwriteExisting {
 		t.Error("OverwriteExisting 应该被设置为 false")
 	}
 }
@@ -122,8 +122,8 @@ func TestWithCompressionLevel(t *testing.T) {
 		if result != c {
 			t.Error("WithCompressionLevel 应该返回同一个实例")
 		}
-		if c.config.CompressionLevel != level {
-			t.Errorf("期望压缩级别为 %v, 实际为 %v", level, c.config.CompressionLevel)
+		if c.Config.CompressionLevel != level {
+			t.Errorf("期望压缩级别为 %v, 实际为 %v", level, c.Config.CompressionLevel)
 		}
 	}
 }
@@ -141,8 +141,8 @@ func TestSetCompressionLevel(t *testing.T) {
 
 	for _, level := range testCases {
 		c.SetCompressionLevel(level)
-		if c.config.CompressionLevel != level {
-			t.Errorf("期望压缩级别为 %v, 实际为 %v", level, c.config.CompressionLevel)
+		if c.Config.CompressionLevel != level {
+			t.Errorf("期望压缩级别为 %v, 实际为 %v", level, c.Config.CompressionLevel)
 		}
 	}
 }
@@ -339,52 +339,17 @@ func TestUnpackAutoGenerateTargetDir(t *testing.T) {
 	}
 }
 
-// TestPackGlobalFunction 测试全局Pack函数
-func TestPackGlobalFunction(t *testing.T) {
-	tempDir := t.TempDir()
-
-	// 创建源文件
-	srcFile := filepath.Join(tempDir, "source.txt")
-	if err := os.WriteFile(srcFile, []byte("test content"), 0644); err != nil {
-		t.Fatal(err)
-	}
-
-	dstFile := filepath.Join(tempDir, "test.zip")
-
-	err := Pack(dstFile, srcFile)
-	if err != nil {
-		t.Errorf("不期望返回错误，但得到错误: %v", err)
-	}
-
-	// 检查文件是否创建
-	if _, err := os.Stat(dstFile); os.IsNotExist(err) {
-		t.Error("压缩文件未创建")
-	}
-}
-
-// TestUnpackGlobalFunction 测试全局Unpack函数
-func TestUnpackGlobalFunction(t *testing.T) {
-	tempDir := t.TempDir()
-	nonExistentFile := filepath.Join(tempDir, "nonexistent.zip")
-	targetDir := filepath.Join(tempDir, "target")
-
-	err := Unpack(nonExistentFile, targetDir)
-	if err == nil {
-		t.Error("期望返回错误，但没有错误")
-	}
-}
-
 // TestChainedConfiguration 测试链式配置
 func TestChainedConfiguration(t *testing.T) {
 	c := New().
 		WithOverwriteExisting(true).
 		WithCompressionLevel(config.CompressionLevelBest)
 
-	if !c.config.OverwriteExisting {
+	if !c.Config.OverwriteExisting {
 		t.Error("OverwriteExisting 应该为 true")
 	}
-	if c.config.CompressionLevel != config.CompressionLevelBest {
-		t.Errorf("期望压缩级别为 %v, 实际为 %v", config.CompressionLevelBest, c.config.CompressionLevel)
+	if c.Config.CompressionLevel != config.CompressionLevelBest {
+		t.Errorf("期望压缩级别为 %v, 实际为 %v", config.CompressionLevelBest, c.Config.CompressionLevel)
 	}
 }
 

@@ -6,6 +6,8 @@ import (
 	"path/filepath"
 	"sync"
 	"testing"
+
+	"gitee.com/MM-Q/comprx/internal/core"
 )
 
 // TestSimpleConcurrentSafety 简单的并发安全测试
@@ -138,7 +140,7 @@ func TestInstanceIsolation(t *testing.T) {
 			defer wg.Done()
 
 			// 创建独立的实例并设置不同配置
-			comprx := New()
+			comprx := core.New()
 			if id%2 == 0 {
 				comprx.WithOverwriteExisting(true)
 			} else {
@@ -150,7 +152,7 @@ func TestInstanceIsolation(t *testing.T) {
 
 			// 验证配置没有被其他goroutine影响
 			expectedOverwrite := (id%2 == 0)
-			actualOverwrite := comprx.config.OverwriteExisting
+			actualOverwrite := comprx.Config.OverwriteExisting
 
 			if expectedOverwrite != actualOverwrite {
 				mu.Lock()

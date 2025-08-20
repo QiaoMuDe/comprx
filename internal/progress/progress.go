@@ -46,24 +46,19 @@ func New() *Progress {
 //
 // 参数:
 //   - totalSize: 总数据大小
-//   - description: 操作描述（如"解压"）
-//   - archiveName: 初始的压缩包名称
+//   - description: 操作描述（如"解压'archive.zip'"）
 //
 // 返回:
 //   - error: 初始化错误
-//
-// 使用示例:
-//   - cfg.Progress.BeginProgress(totalSize, "解压")
-//   - cfg.Progress.BeginProgress(totalSize, "压缩")
-func (s *Progress) Start(totalSize int64, description string, archiveName string) error {
-	// 进度条未启用则直接返回
-	if !s.Enabled {
+func (s *Progress) Start(totalSize int64, description string) error {
+	// 进度条未启用 或 已存在活跃进度条 则返回
+	if !s.Enabled || s.isActive {
 		return nil
 	}
 
-	// 文本模式：显示Archive信息
+	// 文本模式: 显示Archive信息
 	if s.BarStyle == types.ProgressStyleText {
-		s.Archive(archiveName)
+		s.Archive(description)
 		return nil
 	}
 
@@ -87,7 +82,6 @@ func (s *Progress) Start(totalSize int64, description string, archiveName string
 //   - dst: 目标写入器
 //   - src: 源读取器
 //   - buf: 缓冲区
-//   - currentFile: 当前处理的文件名
 //
 // 返回:
 //   - written: 写入的字节数
@@ -96,7 +90,7 @@ func (s *Progress) Start(totalSize int64, description string, archiveName string
 // 使用示例:
 //
 //	written, err := cfg.Progress.CopyBuffer(fileWriter, zipReader, buffer, "file.txt")
-func (s *Progress) CopyBuffer(dst io.Writer, src io.Reader, buf []byte, currentFile string) (written int64, err error) {
+func (s *Progress) CopyBuffer(dst io.Writer, src io.Reader, buf []byte) (written int64, err error) {
 	if dst == nil || src == nil {
 		return 0, fmt.Errorf("dst 或 src 不能为 nil")
 	}
@@ -114,11 +108,6 @@ func (s *Progress) CopyBuffer(dst io.Writer, src io.Reader, buf []byte, currentF
 	// 如果进度条写入器未空则直接使用标准库copybuffer复制
 	if s.currentBar == nil {
 		return io.CopyBuffer(dst, src, buf)
-	}
-
-	// 安全地更新描述
-	if currentFile != "" {
-		s.currentBar.Describe(fmt.Sprintf("%s: %s", s.description, filepath.Base(currentFile)))
 	}
 
 	// 使用多写入器同时写入文件和更新进度条

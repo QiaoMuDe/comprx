@@ -41,7 +41,7 @@ func Unzip(zipFilePath string, targetDir string, cfg *config.Config) error {
 	}
 
 	// 开始进度显示
-	cfg.Progress.Start(totalSize, "解压", zipFilePath)
+	cfg.Progress.Start(totalSize, fmt.Sprint("正在解压", zipFilePath))
 	defer func() {
 		_ = cfg.Progress.Close()
 	}()
@@ -202,7 +202,7 @@ func extractRegularFileWithWriter(file *zip.File, targetPath string, mode os.Fil
 	defer utils.PutBuffer(buffer)
 
 	// 将文件内容写入目标文件
-	if _, err := cfg.Progress.CopyBuffer(fileWriter, zipFileReader, buffer, file.Name); err != nil {
+	if _, err := cfg.Progress.CopyBuffer(fileWriter, zipFileReader, buffer); err != nil {
 		return fmt.Errorf("处理文件 '%s' 时出错 - 写入文件失败: %w", file.Name, err)
 	}
 

@@ -6,6 +6,8 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+
+	"gitee.com/MM-Q/comprx/internal/core"
 )
 
 // TestListEmptyPaths 测试空路径参数
@@ -97,7 +99,7 @@ func TestListZipFile(t *testing.T) {
 	}
 
 	// 创建ZIP文件
-	c := New().WithOverwriteExisting(true)
+	c := core.New().WithOverwriteExisting(true)
 	zipFile := filepath.Join(tempDir, "test.zip")
 	err := c.Pack(zipFile, srcDir)
 	if err != nil {
@@ -147,7 +149,7 @@ func TestListTarFile(t *testing.T) {
 	}
 
 	// 创建TAR文件
-	c := New().WithOverwriteExisting(true)
+	c := core.New().WithOverwriteExisting(true)
 	tarFile := filepath.Join(tempDir, "test.tar")
 	err := c.Pack(tarFile, srcFile)
 	if err != nil {
@@ -201,7 +203,7 @@ func TestListTgzFile(t *testing.T) {
 	}
 
 	// 创建TGZ文件
-	c := New().WithOverwriteExisting(true)
+	c := core.New().WithOverwriteExisting(true)
 	tgzFile := filepath.Join(tempDir, "test.tgz")
 	err := c.Pack(tgzFile, srcDir)
 	if err != nil {
@@ -252,7 +254,7 @@ func TestListGzipFile(t *testing.T) {
 	}
 
 	// 创建GZIP文件
-	c := New().WithOverwriteExisting(true)
+	c := core.New().WithOverwriteExisting(true)
 	gzFile := filepath.Join(tempDir, "test.txt.gz")
 	err := c.Pack(gzFile, srcFile)
 	if err != nil {
@@ -380,7 +382,7 @@ func TestListComplexDirectory(t *testing.T) {
 	}
 
 	// 创建ZIP文件
-	c := New().WithOverwriteExisting(true)
+	c := core.New().WithOverwriteExisting(true)
 	zipFile := filepath.Join(tempDir, "complex.zip")
 	err := c.Pack(zipFile, srcDir)
 	if err != nil {
@@ -429,7 +431,7 @@ func TestListEmptyArchive(t *testing.T) {
 	}
 
 	// 压缩空目录
-	c := New().WithOverwriteExisting(true)
+	c := core.New().WithOverwriteExisting(true)
 	zipFile := filepath.Join(tempDir, "empty.zip")
 	err := c.Pack(zipFile, emptyDir)
 	if err != nil {
@@ -478,7 +480,7 @@ func TestListFileWithSpecialCharacters(t *testing.T) {
 	}
 
 	// 创建ZIP文件
-	c := New().WithOverwriteExisting(true)
+	c := core.New().WithOverwriteExisting(true)
 	zipFile := filepath.Join(tempDir, "special_chars.zip")
 	err := c.Pack(zipFile, srcDir)
 	if err != nil {
@@ -976,7 +978,7 @@ func BenchmarkList(b *testing.B) {
 	}
 
 	// 创建ZIP文件
-	c := New().WithOverwriteExisting(true)
+	c := core.New().WithOverwriteExisting(true)
 	zipFile := filepath.Join(tempDir, "benchmark.zip")
 	if err := c.Pack(zipFile, srcFile); err != nil {
 		b.Fatal(err)
@@ -1015,7 +1017,7 @@ func BenchmarkListLargeArchive(b *testing.B) {
 	}
 
 	// 创建ZIP文件
-	c := New().WithOverwriteExisting(true)
+	c := core.New().WithOverwriteExisting(true)
 	zipFile := filepath.Join(tempDir, "large_benchmark.zip")
 	if err := c.Pack(zipFile, srcDir); err != nil {
 		b.Fatal(err)

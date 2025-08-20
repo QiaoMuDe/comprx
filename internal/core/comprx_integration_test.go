@@ -1,4 +1,4 @@
-package comprx
+package core
 
 import (
 	"os"
