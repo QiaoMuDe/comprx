@@ -265,7 +265,7 @@ func walkDirectoryForZip(src string, zipWriter *zip.Writer, cfg *config.Config) 
 			if err != nil {
 				return fmt.Errorf("处理文件 '%s' 时出错 - 获取文件信息失败: %w", path, err)
 			}
-			cfg.Progress.Adding(path) // 显示进度
+			cfg.Progress.Adding(headerName) // 显示进度
 			return processRegularFile(zipWriter, path, headerName, info, cfg)
 
 		case entry.IsDir(): // 处理目录
@@ -273,15 +273,15 @@ func walkDirectoryForZip(src string, zipWriter *zip.Writer, cfg *config.Config) 
 			if err != nil {
 				return fmt.Errorf("处理目录 '%s' 时出错 - 获取目录信息失败: %w", path, err)
 			}
-			cfg.Progress.Storing(path) // 显示进度
+			cfg.Progress.Storing(headerName) // 显示进度
 			return processDirectory(zipWriter, headerName, info)
 
 		case entry.Type()&fs.ModeSymlink != 0: // 处理符号链接
-			cfg.Progress.Adding(path) // 显示进度
+			cfg.Progress.Adding(headerName) // 显示进度
 			return processSymlink(zipWriter, path, headerName, entry.Type())
 
 		default: // 处理特殊文件
-			cfg.Progress.Adding(path) // 显示进度
+			cfg.Progress.Adding(headerName) // 显示进度
 			return processSpecialFile(zipWriter, headerName, entry.Type())
 		}
 	})
