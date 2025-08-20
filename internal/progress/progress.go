@@ -18,40 +18,20 @@ const (
 	labelCompressing = "compressing:" // 表示操作压缩文件
 )
 
-// IsSupportedStyle 判断是否是受支持的进度条样式
-//
-// 参数:
-//   - style: 要检查的样式字符串
-//
-// 返回:
-//   - bool: true表示支持该样式，false表示不支持
-func IsSupportedStyle(style string) bool {
-	switch style {
-	case types.StyleText, types.StyleUnicode, types.StyleASCII:
-		return true
-	default:
-		return false
-	}
-}
-
 // Progress 控制台进度显示器
 type Progress struct {
-	Enabled  bool   // 是否启用进度显示
-	BarStyle string // 进度条样式
+	Enabled  bool                // 是否启用进度显示
+	BarStyle types.ProgressStyle // 进度条样式
 }
 
 // New 创建进度显示器
-//
-// 参数:
-//   - enabled: 是否启用进度显示
-//   - barStyle: 进度条样式
 //
 // 返回:
 //   - *Progress: 简单进度显示器
 func New() *Progress {
 	return &Progress{
-		Enabled:  true,            // 是否启用进度显示
-		BarStyle: types.StyleText, // 进度条样式
+		Enabled:  true,                    // 是否启用进度显示
+		BarStyle: types.ProgressStyleText, // 进度条样式
 	}
 }
 
@@ -65,12 +45,12 @@ func New() *Progress {
 //   - *progressbar.ProgressBar: 进度条指针
 //
 // 进度条样式:
-//   - types.StyleUnicode: Unicode样式进度条 - 使用Unicode字符绘制精美进度条
-//   - types.StyleASCII: ASCII样式进度条 - 使用基础ASCII字符绘制兼容性最好的进度条
+//   - types.ProgressStyleUnicode: Unicode样式进度条 - 使用Unicode字符绘制精美进度条
+//   - types.ProgressStyleASCII: ASCII样式进度条 - 使用基础ASCII字符绘制兼容性最好的进度条
 func (s *Progress) NewProgressBar(total int64, description string) *progressbar.ProgressBar {
 	var theme progressbar.Theme
 	// 如果设置样式为Unicode, 否则默认使用ASCII样式
-	if s.BarStyle == types.StyleUnicode {
+	if s.BarStyle == types.ProgressStyleUnicode {
 		theme = progressbar.ThemeUnicode
 	} else {
 		theme = progressbar.ThemeASCII
@@ -131,7 +111,7 @@ func (s *Progress) IsEnabled() bool {
 func (s *Progress) Archive(archivePath string) {
 	// 如果不启用进度显示, 则直接返回
 	// 如果进度条样式不是文本样式, 则直接返回
-	if !s.Enabled || s.BarStyle != types.StyleText {
+	if !s.Enabled || s.BarStyle != types.ProgressStyleText {
 		return
 	}
 	fmt.Printf("%s %s\n", labelArchive, filepath.Base(archivePath))
@@ -142,7 +122,7 @@ func (s *Progress) Archive(archivePath string) {
 // 参数:
 //   - filePath: 文件路径
 func (s *Progress) Compressing(filePath string) {
-	if !s.Enabled || s.BarStyle != types.StyleText {
+	if !s.Enabled || s.BarStyle != types.ProgressStyleText {
 		return
 	}
 	fmt.Printf("%s %s\n", labelCompressing, filePath)
@@ -157,7 +137,7 @@ func (s *Progress) Compressing(filePath string) {
 // 参数:
 //   - filePath: 文件路径
 func (s *Progress) Inflating(filePath string) {
-	if !s.Enabled || s.BarStyle != types.StyleText {
+	if !s.Enabled || s.BarStyle != types.ProgressStyleText {
 		return
 	}
 	fmt.Printf("%s %s\n", labelInflating, filePath)
@@ -168,7 +148,7 @@ func (s *Progress) Inflating(filePath string) {
 // 参数:
 //   - dirPath: 目录路径
 func (s *Progress) Creating(dirPath string) {
-	if !s.Enabled || s.BarStyle != types.StyleText {
+	if !s.Enabled || s.BarStyle != types.ProgressStyleText {
 		return
 	}
 	fmt.Printf("%s %s\n", labelCreating, dirPath)
@@ -183,7 +163,7 @@ func (s *Progress) Creating(dirPath string) {
 // 参数:
 //   - filePath: 文件路径
 func (s *Progress) Adding(filePath string) {
-	if !s.Enabled || s.BarStyle != types.StyleText {
+	if !s.Enabled || s.BarStyle != types.ProgressStyleText {
 		return
 	}
 	fmt.Printf("%s %s\n", labelAdding, filePath)
@@ -194,7 +174,7 @@ func (s *Progress) Adding(filePath string) {
 // 参数:
 //   - dirPath: 目录路径
 func (s *Progress) Storing(dirPath string) {
-	if !s.Enabled || s.BarStyle != types.StyleText {
+	if !s.Enabled || s.BarStyle != types.ProgressStyleText {
 		return
 	}
 	fmt.Printf("%s %s\n", labelStoring, dirPath)

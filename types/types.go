@@ -6,21 +6,62 @@ import (
 	"strings"
 )
 
+// ProgressStyle 进度条样式类型
+//
+// 进度条样式类型定义:
+//   - ProgressStyleText: 文本样式进度条 - 使用文字描述进度
+//   - ProgressStyleUnicode: Unicode样式进度条 - 使用Unicode字符绘制精美进度条
+//   - ProgressStyleASCII: ASCII样式进度条 - 使用基础ASCII字符绘制兼容性最好的进度条
+type ProgressStyle string
+
 // 进度条样式常量
 const (
-	// StyleText 文本样式进度条 - 使用文字描述进度
-	StyleText = "text"
+	// ProgressStyleText 文本样式进度条 - 使用文字描述进度
+	ProgressStyleText ProgressStyle = "text"
 
-	// StyleUnicode Unicode样式进度条 - 使用Unicode字符绘制精美进度条
+	// ProgressStyleUnicode Unicode样式进度条 - 使用Unicode字符绘制精美进度条
 	// 示例: ████████████░░░░░░░░ 60%
-	StyleUnicode = "unicode"
+	ProgressStyleUnicode ProgressStyle = "unicode"
 
-	// StyleASCII ASCII样式进度条 - 使用基础ASCII字符绘制兼容性最好的进度条
+	// ProgressStyleASCII ASCII样式进度条 - 使用基础ASCII字符绘制兼容性最好的进度条
 	// 示例: [##########          ] 50%
-	StyleASCII = "ascii"
+	ProgressStyleASCII ProgressStyle = "ascii"
 )
 
+// String 返回进度条样式的字符串表示
+func (ps ProgressStyle) String() string {
+	return string(ps)
+}
+
+// IsValid 检查进度条样式是否有效
+func (ps ProgressStyle) IsValid() bool {
+	switch ps {
+	case ProgressStyleText, ProgressStyleUnicode, ProgressStyleASCII:
+		return true
+	default:
+		return false
+	}
+}
+
+// SupportedProgressStyles 返回所有支持的进度条样式
+func SupportedProgressStyles() []ProgressStyle {
+	return []ProgressStyle{
+		ProgressStyleText,
+		ProgressStyleUnicode,
+		ProgressStyleASCII,
+	}
+}
+
 // 支持的压缩格式
+//
+// 压缩格式类型定义:
+//   - CompressTypeZip: zip 压缩格式
+//   - CompressTypeTar: tar 压缩格式
+//   - CompressTypeTgz: tgz 压缩格式
+//   - CompressTypeTarGz: tar.gz 压缩格式
+//   - CompressTypeGz: gz 压缩格式
+//   - CompressTypeBz2: bz2 压缩格式
+//   - CompressTypeBzip2: bzip2 压缩格式
 type CompressType string
 
 const (

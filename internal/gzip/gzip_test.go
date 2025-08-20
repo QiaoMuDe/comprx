@@ -23,10 +23,9 @@ func TestGzip_Success(t *testing.T) {
 	dstFile := filepath.Join(tempDir, "test.txt.gz")
 
 	// 创建配置
-	cfg := &config.Config{
-		OverwriteExisting: true,
-		CompressionLevel:  6,
-	}
+	cfg := config.New()
+	cfg.OverwriteExisting = true
+	cfg.CompressionLevel = config.CompressionLevelDefault
 
 	// 执行压缩
 	err := Gzip(dstFile, srcFile, cfg)
@@ -54,7 +53,8 @@ func TestGzip_SourceNotFound(t *testing.T) {
 	srcFile := filepath.Join(tempDir, "nonexistent.txt")
 	dstFile := filepath.Join(tempDir, "test.txt.gz")
 
-	cfg := &config.Config{OverwriteExisting: true}
+	cfg := config.New()
+	cfg.OverwriteExisting = true
 
 	err := Gzip(dstFile, srcFile, cfg)
 	if err == nil {
@@ -70,7 +70,8 @@ func TestGzip_SourceIsDirectory(t *testing.T) {
 	}
 
 	dstFile := filepath.Join(tempDir, "test.txt.gz")
-	cfg := &config.Config{OverwriteExisting: true}
+	cfg := config.New()
+	cfg.OverwriteExisting = true
 
 	err := Gzip(dstFile, srcDir, cfg)
 	if err == nil {
@@ -97,7 +98,8 @@ func TestGzip_OverwriteExisting(t *testing.T) {
 	}
 
 	// 测试不允许覆盖
-	cfg := &config.Config{OverwriteExisting: false}
+	cfg := config.New()
+	cfg.OverwriteExisting = false
 	err := Gzip(dstFile, srcFile, cfg)
 	if err == nil {
 		t.Fatalf("期望不覆盖已存在文件时返回错误")
@@ -121,7 +123,8 @@ func TestGzip_EmptyFile(t *testing.T) {
 	}
 
 	dstFile := filepath.Join(tempDir, "empty.txt.gz")
-	cfg := &config.Config{OverwriteExisting: true}
+	cfg := config.New()
+	cfg.OverwriteExisting = true
 
 	err := Gzip(dstFile, srcFile, cfg)
 	if err != nil {
@@ -148,10 +151,9 @@ func TestGzip_LargeFile(t *testing.T) {
 	}
 
 	dstFile := filepath.Join(tempDir, "large.txt.gz")
-	cfg := &config.Config{
-		OverwriteExisting: true,
-		CompressionLevel:  9, // 最高压缩级别
-	}
+	cfg := config.New()
+	cfg.OverwriteExisting = true
+	cfg.CompressionLevel = 9 // 最高压缩级别
 
 	err := Gzip(dstFile, srcFile, cfg)
 	if err != nil {
@@ -175,7 +177,8 @@ func BenchmarkGzip_SmallFile(b *testing.B) {
 		b.Fatalf("创建测试文件失败: %v", err)
 	}
 
-	cfg := &config.Config{OverwriteExisting: true}
+	cfg := config.New()
+	cfg.OverwriteExisting = true
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {

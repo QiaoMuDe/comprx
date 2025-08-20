@@ -52,7 +52,7 @@ func NewComprx() *Comprx {
 //
 // 返回:
 //   - *Comprx: 压缩器实例
-func (c *Comprx) WithProgressAndStyle(enabled bool, style string) *Comprx {
+func (c *Comprx) WithProgressAndStyle(enabled bool, style types.ProgressStyle) *Comprx {
 	c.SetProgressAndStyle(enabled, style)
 	return c
 }
@@ -62,7 +62,11 @@ func (c *Comprx) WithProgressAndStyle(enabled bool, style string) *Comprx {
 // 参数:
 //   - enabled: 是否启用进度条
 //   - style: 进度条样式
-func (c *Comprx) SetProgressAndStyle(enabled bool, style string) {
+func (c *Comprx) SetProgressAndStyle(enabled bool, style types.ProgressStyle) {
+	if !style.IsValid() {
+		style = types.ProgressStyleText
+	}
+
 	c.config.Progress.Enabled = enabled
 	c.config.Progress.BarStyle = style
 }
@@ -241,8 +245,8 @@ func (c *Comprx) Unpack(src string, dst string) error {
 // ==============================================
 
 var (
-	defaultComprxWithProgress    = New().WithProgressAndStyle(true, types.StyleText)  // 默认压缩器，启用进度条
-	defaultComprxWithoutProgress = New().WithProgressAndStyle(false, types.StyleText) // 默认压缩器，禁用进度条
+	defaultComprxWithProgress    = New().WithProgressAndStyle(true, types.ProgressStyleText)  // 默认压缩器，启用进度条
+	defaultComprxWithoutProgress = New().WithProgressAndStyle(false, types.ProgressStyleText) // 默认压缩器，禁用进度条
 )
 
 // Pack 压缩文件或目录(禁用进度条)

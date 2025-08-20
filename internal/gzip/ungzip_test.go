@@ -40,7 +40,8 @@ func TestUngzip_Success(t *testing.T) {
 
 	// 设置解压目标
 	targetFile := filepath.Join(tempDir, "extracted.txt")
-	cfg := &config.Config{OverwriteExisting: true}
+	cfg := config.New()
+	cfg.OverwriteExisting = true
 
 	// 执行解压
 	err = Ungzip(gzipFile, targetFile, cfg)
@@ -64,7 +65,8 @@ func TestUngzip_SourceNotFound(t *testing.T) {
 	srcFile := filepath.Join(tempDir, "nonexistent.gz")
 	targetFile := filepath.Join(tempDir, "target.txt")
 
-	cfg := &config.Config{OverwriteExisting: true}
+	cfg := config.New()
+	cfg.OverwriteExisting = true
 
 	err := Ungzip(srcFile, targetFile, cfg)
 	if err == nil {
@@ -82,7 +84,8 @@ func TestUngzip_InvalidGzipFile(t *testing.T) {
 	}
 
 	targetFile := filepath.Join(tempDir, "target.txt")
-	cfg := &config.Config{OverwriteExisting: true}
+	cfg := config.New()
+	cfg.OverwriteExisting = true
 
 	err := Ungzip(invalidFile, targetFile, cfg)
 	if err == nil {
@@ -120,7 +123,8 @@ func TestUngzip_OverwriteExisting(t *testing.T) {
 	}
 
 	// 测试不允许覆盖
-	cfg := &config.Config{OverwriteExisting: false}
+	cfg := config.New()
+	cfg.OverwriteExisting = false
 	err = Ungzip(gzipFile, targetFile, cfg)
 	if err == nil {
 		t.Fatalf("期望不覆盖已存在文件时返回错误")
@@ -166,7 +170,8 @@ func TestUngzip_EmptyGzipFile(t *testing.T) {
 	}
 
 	targetFile := filepath.Join(tempDir, "empty_extracted.txt")
-	cfg := &config.Config{OverwriteExisting: true}
+	cfg := config.New()
+	cfg.OverwriteExisting = true
 
 	err = Ungzip(gzipFile, targetFile, cfg)
 	if err != nil {
@@ -217,7 +222,8 @@ func TestUngzip_TargetIsDirectory(t *testing.T) {
 	}
 
 	// 使用目录作为目标路径，应该自动生成文件名
-	cfg := &config.Config{OverwriteExisting: true}
+	cfg := config.New()
+	cfg.OverwriteExisting = true
 	err = Ungzip(gzipFile, targetDir, cfg)
 	if err != nil {
 		t.Fatalf("目标为目录时解压失败: %v", err)
@@ -257,7 +263,8 @@ func BenchmarkUngzip_SmallFile(b *testing.B) {
 		b.Fatalf("关闭文件失败: %v", err)
 	}
 
-	cfg := &config.Config{OverwriteExisting: true}
+	cfg := config.New()
+	cfg.OverwriteExisting = true
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {

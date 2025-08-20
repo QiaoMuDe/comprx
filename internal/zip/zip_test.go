@@ -155,10 +155,9 @@ func TestZip_CompressionLevels(t *testing.T) {
 	for _, level := range compressionLevels {
 		t.Run(fmt.Sprintf("level_%d", int(level)), func(t *testing.T) {
 			zipFile := filepath.Join(tempDir, fmt.Sprintf("test_%d.zip", int(level)))
-			cfg := &config.Config{
-				CompressionLevel:  level,
-				OverwriteExisting: true,
-			}
+			cfg := config.New()
+			cfg.CompressionLevel = level
+			cfg.OverwriteExisting = true
 
 			err := Zip(zipFile, testFile, cfg)
 			if err != nil {
@@ -189,9 +188,8 @@ func TestZip_OverwriteExisting(t *testing.T) {
 	}
 
 	t.Run("不覆盖已存在文件", func(t *testing.T) {
-		cfg := &config.Config{
-			OverwriteExisting: false,
-		}
+		cfg := config.New()
+		cfg.OverwriteExisting = false
 
 		err := Zip(zipFile, testFile, cfg)
 		if err == nil {
@@ -200,9 +198,8 @@ func TestZip_OverwriteExisting(t *testing.T) {
 	})
 
 	t.Run("覆盖已存在文件", func(t *testing.T) {
-		cfg := &config.Config{
-			OverwriteExisting: true,
-		}
+		cfg := config.New()
+		cfg.OverwriteExisting = true
 
 		err := Zip(zipFile, testFile, cfg)
 		if err != nil {

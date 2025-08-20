@@ -13,7 +13,8 @@ func TestUnbz2_SourceNotFound(t *testing.T) {
 	srcFile := filepath.Join(tempDir, "nonexistent.bz2")
 	targetFile := filepath.Join(tempDir, "target.txt")
 
-	cfg := &config.Config{OverwriteExisting: true}
+	cfg := config.New()
+	cfg.OverwriteExisting = true
 
 	err := Unbz2(srcFile, targetFile, cfg)
 	if err == nil {
@@ -31,7 +32,8 @@ func TestUnbz2_InvalidBzip2File(t *testing.T) {
 	}
 
 	targetFile := filepath.Join(tempDir, "target.txt")
-	cfg := &config.Config{OverwriteExisting: true}
+	cfg := config.New()
+	cfg.OverwriteExisting = true
 
 	err := Unbz2(invalidFile, targetFile, cfg)
 	if err == nil {
@@ -55,7 +57,8 @@ func TestUnbz2_OverwriteExisting(t *testing.T) {
 	}
 
 	// 测试不允许覆盖
-	cfg := &config.Config{OverwriteExisting: false}
+	cfg := config.New()
+	cfg.OverwriteExisting = false
 	err := Unbz2(bzip2File, targetFile, cfg)
 	if err == nil {
 		t.Fatalf("期望不覆盖已存在文件时返回错误")
@@ -83,7 +86,8 @@ func TestUnbz2_TargetIsDirectory(t *testing.T) {
 		t.Fatalf("创建目标目录失败: %v", err)
 	}
 
-	cfg := &config.Config{OverwriteExisting: true}
+	cfg := config.New()
+	cfg.OverwriteExisting = true
 
 	// 使用目录作为目标路径，应该自动生成文件名
 	err := Unbz2(bzip2File, targetDir, cfg)
@@ -104,7 +108,8 @@ func TestUnbz2_CreateTargetDirectory(t *testing.T) {
 
 	// 设置目标文件在不存在的目录中
 	targetFile := filepath.Join(tempDir, "subdir", "target.txt")
-	cfg := &config.Config{OverwriteExisting: true}
+	cfg := config.New()
+	cfg.OverwriteExisting = true
 
 	err := Unbz2(bzip2File, targetFile, cfg)
 	// 由于不是真正的 bzip2 文件会失败，但目录应该被创建
@@ -128,7 +133,8 @@ func TestUnbz2_EmptyFile(t *testing.T) {
 	}
 
 	targetFile := filepath.Join(tempDir, "empty_extracted.txt")
-	cfg := &config.Config{OverwriteExisting: true}
+	cfg := config.New()
+	cfg.OverwriteExisting = true
 
 	err := Unbz2(bzip2File, targetFile, cfg)
 	if err == nil {
