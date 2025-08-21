@@ -69,7 +69,7 @@ func Tgz(dst string, src string, cfg *config.Config) error {
 	defer func() { _ = tgzFile.Close() }()
 
 	// 创建 GZIP 写入器
-	gzipWriter, err := gzip.NewWriterLevel(tgzFile, config.GetCompressionLevel(cfg))
+	gzipWriter, err := gzip.NewWriterLevel(tgzFile, config.GetCompressionLevel(cfg.CompressionLevel))
 	if err != nil {
 		return fmt.Errorf("创建 GZIP 写入器失败: %w", err)
 	}

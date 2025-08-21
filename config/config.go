@@ -28,30 +28,25 @@ func New() *Config {
 // GetCompressionLevel 根据配置返回对应的压缩等级
 //
 // 参数:
-//   - cfg: *Config - 配置
+//   - level: types.CompressionLevel - 压缩等级
 //
 // 返回值:
 //   - int - 压缩等级
-func GetCompressionLevel(cfg *Config) int {
-	switch cfg.CompressionLevel {
-	// 不进行压缩
-	case types.CompressionLevelNone:
+func GetCompressionLevel(level types.CompressionLevel) int {
+	switch level {
+	case types.CompressionLevelNone: // 不进行压缩(禁用压缩)
 		return gzip.NoCompression
 
-	// 快速压缩
-	case types.CompressionLevelFast:
+	case types.CompressionLevelFast: // 快速压缩(压缩速度最快)
 		return gzip.BestSpeed
 
-	// 最佳压缩
-	case types.CompressionLevelBest:
+	case types.CompressionLevelBest: // 最佳压缩(压缩率最高)
 		return gzip.BestCompression
 
-	// 只使用哈夫曼编码
-	case types.CompressionLevelHuffmanOnly:
+	case types.CompressionLevelHuffmanOnly: // 只使用哈夫曼编码(仅对文本文件有效)
 		return gzip.HuffmanOnly
 
-	// 默认的压缩等级
-	default:
+	default: // 默认的压缩等级(在压缩速度和压缩率之间取得平衡)
 		return gzip.DefaultCompression
 	}
 }

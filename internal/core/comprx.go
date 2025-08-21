@@ -79,12 +79,16 @@ func (c *Comprx) Pack(dst string, src string) error {
 	switch compressType {
 	case types.CompressTypeZip: // Zip
 		return cxzip.Zip(dst, src, c.Config)
+
 	case types.CompressTypeTar: // Tar
 		return cxtar.Tar(dst, src, c.Config)
+
 	case types.CompressTypeTgz, types.CompressTypeTarGz: // Tar.gz 或 .tgz
 		return cxtgz.Tgz(dst, src, c.Config)
+
 	case types.CompressTypeGz: // Gz
 		return cxgzip.Gzip(dst, src, c.Config)
+
 	default:
 		return fmt.Errorf("不支持的压缩格式: %s", compressType)
 	}

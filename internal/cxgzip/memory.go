@@ -7,7 +7,6 @@ import (
 	"io"
 
 	"gitee.com/MM-Q/comprx/config"
-	"gitee.com/MM-Q/comprx/internal/utils"
 	"gitee.com/MM-Q/comprx/types"
 )
 
@@ -20,36 +19,37 @@ import (
 // 返回:
 //   - []byte: 压缩后的数据
 //   - error: 错误信息
-func CompressBytes(data []byte, level types.CompressionLevel) ([]byte, error) {
-	// 参数验证
+func CompressBytes(data []byte, level types.CompressionLevel) (result []byte, err error) {
+	// 参数验证 - 更精确的nil检查
 	if data == nil {
 		return nil, fmt.Errorf("输入数据不能为nil")
 	}
+	if len(data) == 0 {
+		return nil, fmt.Errorf("输入数据不能为空")
+	}
 
-	// 创建内存缓冲区
-	var buf bytes.Buffer
+	// 创建内存缓冲区 - 预分配容量减少重分配
+	// 预分配原大小的50%
+	estimatedSize := len(data) / 2
+	if estimatedSize < 64 {
+		estimatedSize = 64 // 最小64字节
+	}
+	buf := bytes.NewBuffer(make([]byte, 0, estimatedSize))
 
 	// 创建gzip写入器
-	writer, err := gzip.NewWriterLevel(&buf, config.GetCompressionLevel(&config.Config{
-		CompressionLevel: level,
-	}))
+	writer, err := gzip.NewWriterLevel(buf, config.GetCompressionLevel(level))
 	if err != nil {
 		return nil, fmt.Errorf("创建gzip写入器失败: %w", err)
 	}
-	defer func() { _ = writer.Close() }()
+	defer func() {
+		if cerr := writer.Close(); cerr != nil && err == nil {
+			err = fmt.Errorf("完成压缩失败: %w", cerr)
+		}
+	}()
 
-	// 使用32KB缓冲区和CopyBuffer进行数据传输
-	reader := bytes.NewReader(data)
-	buffer := utils.GetBuffer(32 * 1024) // 使用32KB缓冲区
-	defer utils.PutBuffer(buffer)
-
-	if _, err := io.CopyBuffer(writer, reader, buffer); err != nil {
+	// 直接写入数据，无需额外缓冲区
+	if _, err = writer.Write(data); err != nil {
 		return nil, fmt.Errorf("压缩数据失败: %w", err)
-	}
-
-	// 关闭写入器确保数据完整写入
-	if err := writer.Close(); err != nil {
-		return nil, fmt.Errorf("完成压缩失败: %w", err)
 	}
 
 	return buf.Bytes(), nil
@@ -63,8 +63,11 @@ func CompressBytes(data []byte, level types.CompressionLevel) ([]byte, error) {
 // 返回:
 //   - []byte: 解压后的数据
 //   - error: 错误信息
-func DecompressBytes(compressedData []byte) ([]byte, error) {
-	// 参数验证
+func DecompressBytes(compressedData []byte) (result []byte, err error) {
+	// 参数验证 - 更精确的nil检查
+	if compressedData == nil {
+		return nil, fmt.Errorf("压缩数据不能为nil")
+	}
 	if len(compressedData) == 0 {
 		return nil, fmt.Errorf("压缩数据不能为空")
 	}
@@ -77,14 +80,21 @@ func DecompressBytes(compressedData []byte) ([]byte, error) {
 	if err != nil {
 		return nil, fmt.Errorf("创建gzip读取器失败: %w", err)
 	}
-	defer func() { _ = gzipReader.Close() }()
+	defer func() {
+		if cerr := gzipReader.Close(); cerr != nil && err == nil {
+			err = fmt.Errorf("关闭gzip读取器失败: %w", cerr)
+		}
+	}()
 
-	// 使用32KB缓冲区和CopyBuffer读取解压数据
-	var buf bytes.Buffer
-	buffer := utils.GetBuffer(32 * 1024) // 使用32KB缓冲区
-	defer utils.PutBuffer(buffer)
+	// 预分配解压缓冲区 - 解压通常是压缩数据的2-3倍
+	estimatedSize := len(compressedData) * 2
+	if estimatedSize < 128 {
+		estimatedSize = 128 // 最小128字节
+	}
+	buf := bytes.NewBuffer(make([]byte, 0, estimatedSize))
 
-	if _, err := io.CopyBuffer(&buf, gzipReader, buffer); err != nil {
+	// 直接读取解压数据，无需额外缓冲区
+	if _, err = io.Copy(buf, gzipReader); err != nil {
 		return nil, fmt.Errorf("解压数据失败: %w", err)
 	}
 
@@ -101,6 +111,11 @@ func DecompressBytes(compressedData []byte) ([]byte, error) {
 //   - []byte: 压缩后的数据
 //   - error: 错误信息
 func CompressString(text string, level types.CompressionLevel) ([]byte, error) {
+	// 快速失败判断
+	if text == "" {
+		return nil, fmt.Errorf("输入字符串不能为空")
+	}
+
 	// 直接复用CompressBytes
 	return CompressBytes([]byte(text), level)
 }
@@ -114,6 +129,14 @@ func CompressString(text string, level types.CompressionLevel) ([]byte, error) {
 //   - string: 解压后的字符串
 //   - error: 错误信息
 func DecompressString(compressedData []byte) (string, error) {
+	// 快速失败判断
+	if compressedData == nil {
+		return "", fmt.Errorf("压缩数据不能为nil")
+	}
+	if len(compressedData) == 0 {
+		return "", fmt.Errorf("压缩数据不能为空")
+	}
+
 	// 先解压为字节
 	decompressed, err := DecompressBytes(compressedData)
 	if err != nil {
