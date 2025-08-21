@@ -114,3 +114,48 @@ func ForceOptions() Options {
 	opts.ProgressEnabled = false
 	return opts
 }
+
+// NoCompressionOptions 返回禁用压缩且启用进度条的配置选项
+//
+// 返回:
+//   - Options: 禁用压缩且启用进度条的配置选项
+//
+// 配置特点:
+//   - CompressionLevel: 无压缩 (存储模式)
+//   - ProgressEnabled: true (启用进度条)
+//   - ProgressStyle: 文本样式
+//
+// 使用示例:
+//
+//	err := PackOptions("output.zip", "input_dir", NoCompressionOptions())
+func NoCompressionOptions() Options {
+	opts := DefaultOptions()
+	opts.CompressionLevel = config.CompressionLevelNone
+	opts.ProgressEnabled = true
+	opts.ProgressStyle = types.ProgressStyleText
+	return opts
+}
+
+// NoCompressionProgressOptions 返回禁用压缩且启用指定样式进度条的配置选项
+//
+// 参数:
+//   - style: 进度条样式
+//
+// 返回:
+//   - Options: 禁用压缩且启用指定样式进度条的配置选项
+//
+// 配置特点:
+//   - CompressionLevel: 无压缩 (存储模式)
+//   - ProgressEnabled: true (启用进度条)
+//   - ProgressStyle: 指定样式
+//
+// 使用示例:
+//
+//	err := PackOptions("output.zip", "input_dir", NoCompressionProgressOptions(types.ProgressStyleUnicode))
+func NoCompressionProgressOptions(style types.ProgressStyle) Options {
+	opts := DefaultOptions()
+	opts.CompressionLevel = config.CompressionLevelNone
+	opts.ProgressEnabled = true
+	opts.ProgressStyle = style
+	return opts
+}
