@@ -397,3 +397,132 @@ func BenchmarkLimitFiles(b *testing.B) {
 		_ = LimitFiles(files, 100)
 	}
 }
+
+// TestPrintArchiveSummary_CompressionRatio 测试压缩率计算
+func TestPrintArchiveSummary_CompressionRatio(t *testing.T) {
+	tests := []struct {
+		name          string
+		archiveInfo   *types.ArchiveInfo
+		expectedRatio string
+		description   string
+	}{
+		{
+			name: "正常压缩情况_50%压缩率",
+			archiveInfo: &types.ArchiveInfo{
+				Type:           types.CompressTypeZip,
+				TotalFiles:     10,
+				TotalSize:      1000,
+				CompressedSize: 500,
+			},
+			expectedRatio: "压缩率: 50.0%",
+			description:   "压缩大小为原始大小的50%，压缩率应为50%",
+		},
+		{
+			name: "高压缩率情况_90%压缩率",
+			archiveInfo: &types.ArchiveInfo{
+				Type:           types.CompressTypeZip,
+				TotalFiles:     5,
+				TotalSize:      1000,
+				CompressedSize: 100,
+			},
+			expectedRatio: "压缩率: 90.0%",
+			description:   "压缩大小为原始大小的10%，压缩率应为90%",
+		},
+		{
+			name: "TAR格式_压缩大小大于原始大小",
+			archiveInfo: &types.ArchiveInfo{
+				Type:           types.CompressTypeTar,
+				TotalFiles:     185,
+				TotalSize:      530841600, // 506.3 MB
+				CompressedSize: 530946048, // 506.4 MB
+			},
+			expectedRatio: "压缩率: 0.0%",
+			description:   "TAR格式压缩大小大于原始大小，应显示0.0%",
+		},
+		{
+			name: "压缩大小等于原始大小",
+			archiveInfo: &types.ArchiveInfo{
+				Type:           types.CompressTypeTar,
+				TotalFiles:     1,
+				TotalSize:      1000,
+				CompressedSize: 1000,
+			},
+			expectedRatio: "压缩率: 0.0%",
+			description:   "压缩大小等于原始大小，应显示0.0%",
+		},
+		{
+			name: "极小压缩率_99.9%压缩大小",
+			archiveInfo: &types.ArchiveInfo{
+				Type:           types.CompressTypeZip,
+				TotalFiles:     1,
+				TotalSize:      1000,
+				CompressedSize: 999,
+			},
+			expectedRatio: "压缩率: 0.1%",
+			description:   "压缩大小为99.9%，压缩率应为0.1%",
+		},
+		{
+			name: "压缩大小为0",
+			archiveInfo: &types.ArchiveInfo{
+				Type:           types.CompressTypeZip,
+				TotalFiles:     0,
+				TotalSize:      0,
+				CompressedSize: 0,
+			},
+			expectedRatio: "",
+			description:   "压缩大小为0时，不应显示压缩率",
+		},
+		{
+			name: "原始大小为0但压缩大小不为0",
+			archiveInfo: &types.ArchiveInfo{
+				Type:           types.CompressTypeZip,
+				TotalFiles:     1,
+				TotalSize:      0,
+				CompressedSize: 100,
+			},
+			expectedRatio: "压缩率: 0.0%",
+			description:   "原始大小为0时，应显示0.0%避免除零错误",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			// 捕获标准输出
+			old := os.Stdout
+			r, w, _ := os.Pipe()
+			os.Stdout = w
+
+			PrintArchiveSummary(tt.archiveInfo)
+
+			_ = w.Close()
+			os.Stdout = old
+
+			var buf bytes.Buffer
+			_, _ = io.Copy(&buf, r)
+			output := buf.String()
+
+			if tt.expectedRatio == "" {
+				// 不应包含压缩率信息
+				if strings.Contains(output, "压缩率:") {
+					t.Errorf("不应显示压缩率，但输出包含: %s", output)
+				}
+			} else {
+				// 应包含预期的压缩率
+				if !strings.Contains(output, tt.expectedRatio) {
+					t.Errorf("期望包含 '%s'，但实际输出: %s", tt.expectedRatio, output)
+				}
+			}
+
+			// 验证基本信息是否正确显示
+			expectedType := fmt.Sprintf("压缩包类型: %s", tt.archiveInfo.Type)
+			if !strings.Contains(output, expectedType) {
+				t.Errorf("期望包含 '%s'，但实际输出: %s", expectedType, output)
+			}
+
+			expectedFiles := fmt.Sprintf("文件总数: %d", tt.archiveInfo.TotalFiles)
+			if !strings.Contains(output, expectedFiles) {
+				t.Errorf("期望包含 '%s'，但实际输出: %s", expectedFiles, output)
+			}
+		})
+	}
+}
