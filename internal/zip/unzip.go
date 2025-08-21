@@ -30,21 +30,12 @@ func Unzip(zipFilePath string, targetDir string, cfg *config.Config) error {
 	defer func() { _ = zipReader.Close() }()
 
 	// 在进度条模式下计算总大小
-	var totalSize int64
-	if cfg.Progress.Enabled && cfg.Progress.BarStyle != types.ProgressStyleText {
-		bar := cfg.Progress.StartScan("正在计算压缩包大小...")
-		for _, file := range zipReader.File {
-			// 只计算普通文件的大小，跳过目录和软链接
-			if !file.Mode().IsDir() && file.Mode()&os.ModeSymlink == 0 {
-				totalSize += int64(file.UncompressedSize64)   // 计算总大小
-				_ = bar.Add64(int64(file.UncompressedSize64)) // 更新进度条
-			}
-		}
-		_ = cfg.Progress.CloseBar(bar) // 关闭进度条
-	}
+	totalSize := calculateZipTotalSize(zipReader, cfg)
 
 	// 开始进度显示
-	_ = cfg.Progress.Start(totalSize, fmt.Sprint("正在解压", zipFilePath))
+	if err := cfg.Progress.Start(totalSize, zipFilePath, fmt.Sprintf("正在解压 %s...", filepath.Base(zipFilePath))); err != nil {
+		return fmt.Errorf("开始进度显示失败: %w", err)
+	}
 	defer func() {
 		_ = cfg.Progress.Close()
 	}()
@@ -91,6 +82,40 @@ func Unzip(zipFilePath string, targetDir string, cfg *config.Config) error {
 	}
 
 	return nil
+}
+
+// calculateZipTotalSize 计算ZIP文件中所有普通文件的总大小
+//
+// 参数:
+//   - zipReader: ZIP文件读取器
+//   - cfg: 解压配置
+//
+// 返回值:
+//   - int64: 普通文件的总大小（字节）
+func calculateZipTotalSize(zipReader *zip.ReadCloser, cfg *config.Config) int64 {
+	var totalSize int64
+
+	// 只在进度条模式下计算总大小
+	if !cfg.Progress.Enabled || cfg.Progress.BarStyle == types.ProgressStyleText {
+		return 0
+	}
+
+	// 开始扫描进度显示
+	bar := cfg.Progress.StartScan("正在分析内容...")
+	defer func() {
+		_ = cfg.Progress.CloseBar(bar)
+	}()
+
+	// 遍历ZIP文件中的所有条目
+	for _, file := range zipReader.File {
+		// 只计算普通文件的大小，跳过目录和软链接
+		if file.Mode().IsRegular() {
+			totalSize += int64(file.UncompressedSize64)   // 累加普通文件大小
+			_ = bar.Add64(int64(file.UncompressedSize64)) // 更新进度条
+		}
+	}
+
+	return totalSize
 }
 
 // extractDirectory 处理目录解压

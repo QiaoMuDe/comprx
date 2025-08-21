@@ -10,7 +10,49 @@ import (
 
 	"gitee.com/MM-Q/comprx/config"
 	"gitee.com/MM-Q/comprx/internal/utils"
+	"gitee.com/MM-Q/comprx/types"
 )
+
+// calculateBzip2TotalSize 计算BZIP2文件的解压后大小
+//
+// 参数:
+//   - bz2FilePath: BZIP2文件路径
+//   - cfg: 解压配置
+//
+// 返回值:
+//   - int64: 解压后的文件大小（字节）
+func calculateBzip2TotalSize(bz2FilePath string, cfg *config.Config) int64 {
+	// 只在进度条模式下计算总大小
+	if !cfg.Progress.Enabled || cfg.Progress.BarStyle == types.ProgressStyleText {
+		return 0
+	}
+
+	// 开始扫描进度显示
+	bar := cfg.Progress.StartScan("正在分析内容...")
+	defer func() {
+		_ = cfg.Progress.CloseBar(bar)
+	}()
+
+	// 打开BZIP2文件进行扫描
+	bz2File, err := os.Open(bz2FilePath)
+	if err != nil {
+		return 0
+	}
+	defer func() { _ = bz2File.Close() }()
+
+	// 创建BZIP2读取器
+	bz2Reader := bzip2.NewReader(bz2File)
+
+	// 由于BZIP2是流式压缩，我们需要读取整个文件来计算大小
+	// 使用进度条作为写入器，直接通过io.CopyBuffer计算总大小
+	buffer := make([]byte, 32*1024) // 32KB缓冲区
+	totalSize, err := io.CopyBuffer(bar, bz2Reader, buffer)
+	if err != nil {
+		return 0 // 如果出错，返回0表示无法计算大小
+	}
+
+	return totalSize
+}
 
 // Unbz2 解压缩 BZIP2 文件
 //
@@ -22,8 +64,16 @@ import (
 // 返回值:
 //   - error: 解压缩过程中发生的错误
 func Unbz2(bz2FilePath string, targetPath string, cfg *config.Config) error {
-	// 打印压缩文件信息
-	cfg.Progress.Compressing(bz2FilePath)
+	// 在进度条模式下计算总大小
+	totalSize := calculateBzip2TotalSize(bz2FilePath, cfg)
+
+	// 开始进度显示
+	if err := cfg.Progress.Start(totalSize, bz2FilePath, fmt.Sprintf("正在解压 %s...", filepath.Base(bz2FilePath))); err != nil {
+		return fmt.Errorf("开始进度显示失败: %w", err)
+	}
+	defer func() {
+		_ = cfg.Progress.Close()
+	}()
 
 	// 打开 BZIP2 文件（同时检查文件是否存在）
 	bz2File, err := os.Open(bz2FilePath)
@@ -90,7 +140,7 @@ func Unbz2(bz2FilePath string, targetPath string, cfg *config.Config) error {
 	cfg.Progress.Inflating(targetPath)
 
 	// 解压缩文件内容到目标文件
-	if _, err := io.CopyBuffer(targetFile, bz2Reader, buffer); err != nil {
+	if _, err := cfg.Progress.CopyBuffer(targetFile, bz2Reader, buffer); err != nil {
 		return fmt.Errorf("解压缩文件失败: %w", err)
 	}
 

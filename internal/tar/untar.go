@@ -9,6 +9,7 @@ import (
 
 	"gitee.com/MM-Q/comprx/config"
 	"gitee.com/MM-Q/comprx/internal/utils"
+	"gitee.com/MM-Q/comprx/types"
 )
 
 // Untar 解压缩 TAR 文件到指定目录
@@ -16,11 +17,14 @@ import (
 // 参数:
 //   - tarFilePath: 要解压缩的 TAR 文件路径
 //   - targetDir: 解压缩后的目标目录路径
-//   - config: 解压缩配置
+//   - cfg: 解压缩配置
 //
 // 返回值:
 //   - error: 解压缩过程中发生的错误
-func Untar(tarFilePath string, targetDir string, config *config.Config) error {
+func Untar(tarFilePath string, targetDir string, cfg *config.Config) error {
+	// 在进度条模式下计算总大小
+	totalSize := calculateTarTotalSize(tarFilePath, cfg)
+
 	// 打开 TAR 文件
 	tarFile, err := os.Open(tarFilePath)
 	if err != nil {
@@ -30,6 +34,14 @@ func Untar(tarFilePath string, targetDir string, config *config.Config) error {
 
 	// 创建 TAR 读取器
 	tarReader := tar.NewReader(tarFile)
+
+	// 开始进度显示
+	if err := cfg.Progress.Start(totalSize, tarFilePath, fmt.Sprintf("正在解压 %s...", filepath.Base(tarFilePath))); err != nil {
+		return fmt.Errorf("开始进度显示失败: %w", err)
+	}
+	defer func() {
+		_ = cfg.Progress.Close()
+	}()
 
 	// 检查目标目录是否存在, 如果不存在, 则创建
 	if err := utils.EnsureDir(targetDir); err != nil {
@@ -47,7 +59,7 @@ func Untar(tarFilePath string, targetDir string, config *config.Config) error {
 		}
 
 		// 安全的路径验证和拼接
-		targetPath, err := utils.ValidatePathSimple(targetDir, header.Name, config.DisablePathValidation)
+		targetPath, err := utils.ValidatePathSimple(targetDir, header.Name, cfg.DisablePathValidation)
 		if err != nil {
 			return fmt.Errorf("处理文件 '%s' 时路径验证失败: %w", header.Name, err)
 		}
@@ -55,21 +67,25 @@ func Untar(tarFilePath string, targetDir string, config *config.Config) error {
 		// 使用 switch 语句处理不同类型的文件
 		switch header.Typeflag {
 		case tar.TypeDir: // 处理目录
+			cfg.Progress.Creating(targetPath) // 显示进度
 			if err := extractDirectory(targetPath, header.Name); err != nil {
 				return err
 			}
 
 		case tar.TypeReg: // 处理普通文件
-			if err := extractRegularFile(tarReader, targetPath, header, config); err != nil {
+			cfg.Progress.Inflating(targetPath) // 显示进度
+			if err := extractRegularFile(tarReader, targetPath, header, cfg); err != nil {
 				return err
 			}
 
 		case tar.TypeSymlink: // 处理符号链接
+			cfg.Progress.Inflating(targetPath) // 显示进度
 			if err := extractSymlink(header, targetPath); err != nil {
 				return err
 			}
 
 		case tar.TypeLink: // 处理硬链接
+			cfg.Progress.Inflating(targetPath) // 显示进度
 			if err := extractHardlink(header, targetPath, targetDir); err != nil {
 				return err
 			}
@@ -81,6 +97,58 @@ func Untar(tarFilePath string, targetDir string, config *config.Config) error {
 	}
 
 	return nil
+}
+
+// calculateTarTotalSize 计算TAR文件中所有普通文件的总大小
+//
+// 参数:
+//   - tarFilePath: TAR文件路径
+//   - cfg: 解压配置
+//
+// 返回值:
+//   - int64: 普通文件的总大小（字节）
+func calculateTarTotalSize(tarFilePath string, cfg *config.Config) int64 {
+	var totalSize int64
+
+	// 只在进度条模式下计算总大小
+	if !cfg.Progress.Enabled || cfg.Progress.BarStyle == types.ProgressStyleText {
+		return 0
+	}
+
+	// 开始扫描进度显示
+	bar := cfg.Progress.StartScan("正在分析内容...")
+	defer func() {
+		_ = cfg.Progress.CloseBar(bar)
+	}()
+
+	// 打开TAR文件进行扫描
+	tarFile, err := os.Open(tarFilePath)
+	if err != nil {
+		return 0
+	}
+	defer func() { _ = tarFile.Close() }()
+
+	// 创建TAR读取器
+	tarReader := tar.NewReader(tarFile)
+
+	// 遍历TAR文件中的所有条目
+	for {
+		header, err := tarReader.Next()
+		if err == io.EOF {
+			break
+		}
+		if err != nil {
+			break // 出错时停止扫描
+		}
+
+		// 只计算普通文件的大小
+		if header.Typeflag == tar.TypeReg {
+			totalSize += header.Size   // 累加普通文件大小
+			_ = bar.Add64(header.Size) // 更新进度条
+		}
+	}
+
+	return totalSize
 }
 
 // extractDirectory 处理目录解压
@@ -104,15 +172,15 @@ func extractDirectory(targetPath, fileName string) error {
 //   - tarReader: TAR读取器
 //   - targetPath: 目标路径
 //   - header: TAR文件头
-//   - config: 解压配置
+//   - cfg: 解压配置
 //
 // 返回值:
 //   - error: 操作过程中遇到的错误
-func extractRegularFile(tarReader *tar.Reader, targetPath string, header *tar.Header, config *config.Config) error {
+func extractRegularFile(tarReader *tar.Reader, targetPath string, header *tar.Header, cfg *config.Config) error {
 	// 检查目标文件是否已存在
 	if _, err := os.Stat(targetPath); err == nil {
 		// 文件已存在，检查是否允许覆盖
-		if !config.OverwriteExisting {
+		if !cfg.OverwriteExisting {
 			return fmt.Errorf("目标文件已存在且不允许覆盖: %s", targetPath)
 		}
 	}
@@ -152,7 +220,7 @@ func extractRegularFile(tarReader *tar.Reader, targetPath string, header *tar.He
 	defer utils.PutBuffer(buffer)
 
 	// 将文件内容写入目标文件
-	if _, err := io.CopyBuffer(fileWriter, tarReader, buffer); err != nil {
+	if _, err := cfg.Progress.CopyBuffer(fileWriter, tarReader, buffer); err != nil {
 		return fmt.Errorf("处理文件 '%s' 时出错 - 写入文件失败: %w", header.Name, err)
 	}
 

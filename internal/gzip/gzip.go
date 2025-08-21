@@ -3,7 +3,6 @@ package gzip
 import (
 	"compress/gzip"
 	"fmt"
-	"io"
 	"os"
 	"path/filepath"
 
@@ -54,8 +53,16 @@ func Gzip(dst string, src string, cfg *config.Config) error {
 		return fmt.Errorf("创建目标目录失败: %w", err)
 	}
 
-	// 打印压缩文件信息
-	cfg.Progress.Compressing(dst)
+	// 获取文件大小用于进度条
+	fileSize := srcInfo.Size()
+
+	// 开始进度显示
+	if err := cfg.Progress.Start(fileSize, dst, fmt.Sprintf("正在压缩 %s...", filepath.Base(dst))); err != nil {
+		return fmt.Errorf("开始进度显示失败: %w", err)
+	}
+	defer func() {
+		_ = cfg.Progress.Close()
+	}()
 
 	// 创建 GZIP 文件
 	gzipFile, err := os.Create(dst)
@@ -82,9 +89,6 @@ func Gzip(dst string, src string, cfg *config.Config) error {
 	}
 	defer func() { _ = srcFile.Close() }()
 
-	// 获取文件大小
-	fileSize := srcInfo.Size()
-
 	// 获取缓冲区大小并创建缓冲区
 	bufferSize := utils.GetBufferSize(fileSize)
 	buffer := utils.GetBuffer(bufferSize)
@@ -94,7 +98,7 @@ func Gzip(dst string, src string, cfg *config.Config) error {
 	cfg.Progress.Adding(src)
 
 	// 复制文件内容到GZIP写入器
-	if _, err := io.CopyBuffer(gzipWriter, srcFile, buffer); err != nil {
+	if _, err := cfg.Progress.CopyBuffer(gzipWriter, srcFile, buffer); err != nil {
 		return fmt.Errorf("压缩文件失败: %w", err)
 	}
 

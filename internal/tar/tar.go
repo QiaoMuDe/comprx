@@ -3,7 +3,6 @@ package tar
 import (
 	"archive/tar"
 	"fmt"
-	"io"
 	"os"
 	"path/filepath"
 
@@ -43,8 +42,16 @@ func Tar(dst string, src string, cfg *config.Config) error {
 		return fmt.Errorf("创建目标目录失败: %w", err)
 	}
 
-	// 打印压缩文件信息
-	cfg.Progress.Archive(dst)
+	// 在进度条模式下计算源文件总大小
+	totalSize := utils.CalculateSourceTotalSizeWithProgress(src, cfg, "正在分析内容...")
+
+	// 开始进度显示
+	if err := cfg.Progress.Start(totalSize, dst, fmt.Sprintf("正在压缩 %s...", filepath.Base(dst))); err != nil {
+		return fmt.Errorf("开始进度显示失败: %w", err)
+	}
+	defer func() {
+		_ = cfg.Progress.Close()
+	}()
 
 	// 创建 TAR 文件
 	tarFile, err := os.Create(dst)
@@ -71,7 +78,7 @@ func Tar(dst string, src string, cfg *config.Config) error {
 	} else {
 		// 单文件处理逻辑
 		cfg.Progress.Adding(src)
-		tarErr = processRegularFile(tarWriter, src, filepath.Base(src), srcInfo)
+		tarErr = processRegularFile(tarWriter, src, filepath.Base(src), srcInfo, cfg)
 	}
 
 	// 检查是否有错误发生
@@ -200,7 +207,7 @@ func walkDirectoryForTar(src string, tarWriter *tar.Writer, cfg *config.Config) 
 				return fmt.Errorf("处理文件 '%s' 时出错 - 获取文件信息失败: %w", path, err)
 			}
 			cfg.Progress.Adding(headerName) // 更新进度
-			return processRegularFile(tarWriter, path, headerName, info)
+			return processRegularFile(tarWriter, path, headerName, info, cfg)
 
 		// 处理目录
 		case entry.IsDir():
@@ -239,10 +246,11 @@ func walkDirectoryForTar(src string, tarWriter *tar.Writer, cfg *config.Config) 
 //   - path: string - 源路径
 //   - headerName: string - TAR 文件中的文件名
 //   - info: os.FileInfo - 文件信息
+//   - cfg: *config.Config - 配置
 //
 // 返回值:
 //   - error - 操作过程中遇到的错误
-func processRegularFile(tarWriter *tar.Writer, path, headerName string, info os.FileInfo) error {
+func processRegularFile(tarWriter *tar.Writer, path, headerName string, info os.FileInfo, cfg *config.Config) error {
 	// 创建文件头
 	header, err := tar.FileInfoHeader(info, "")
 	if err != nil {
@@ -271,7 +279,7 @@ func processRegularFile(tarWriter *tar.Writer, path, headerName string, info os.
 	defer utils.PutBuffer(buffer)
 
 	// 复制文件内容到TAR写入器
-	if _, err := io.CopyBuffer(tarWriter, file, buffer); err != nil {
+	if _, err := cfg.Progress.CopyBuffer(tarWriter, file, buffer); err != nil {
 		return fmt.Errorf("处理文件 '%s' 时出错 - 写入 TAR 文件失败: %w", path, err)
 	}
 

@@ -10,6 +10,7 @@ import (
 
 	"gitee.com/MM-Q/comprx/config"
 	"gitee.com/MM-Q/comprx/internal/utils"
+	"gitee.com/MM-Q/comprx/types"
 )
 
 // Untgz 解压缩 TGZ 文件到指定目录
@@ -22,8 +23,8 @@ import (
 // 返回值:
 //   - error: 解压缩过程中发生的错误
 func Untgz(tgzFilePath string, targetDir string, cfg *config.Config) error {
-	// 打印压缩文件信息
-	cfg.Progress.Archive(tgzFilePath)
+	// 在进度条模式下计算总大小
+	totalSize := calculateTgzTotalSize(tgzFilePath, cfg)
 
 	// 打开 TGZ 文件
 	tgzFile, err := os.Open(tgzFilePath)
@@ -41,6 +42,14 @@ func Untgz(tgzFilePath string, targetDir string, cfg *config.Config) error {
 
 	// 创建 TAR 读取器
 	tarReader := tar.NewReader(gzipReader)
+
+	// 开始进度显示
+	if err := cfg.Progress.Start(totalSize, tgzFilePath, fmt.Sprintf("正在解压 %s...", filepath.Base(tgzFilePath))); err != nil {
+		return fmt.Errorf("开始进度显示失败: %w", err)
+	}
+	defer func() {
+		_ = cfg.Progress.Close()
+	}()
 
 	// 检查目标目录是否存在, 如果不存在, 则创建
 	if err := utils.EnsureDir(targetDir); err != nil {
@@ -98,6 +107,65 @@ func Untgz(tgzFilePath string, targetDir string, cfg *config.Config) error {
 	return nil
 }
 
+// calculateTgzTotalSize 计算TGZ文件中所有普通文件的总大小
+//
+// 参数:
+//   - tgzFilePath: TGZ文件路径
+//   - cfg: 解压配置
+//
+// 返回值:
+//   - int64: 普通文件的总大小（字节）
+func calculateTgzTotalSize(tgzFilePath string, cfg *config.Config) int64 {
+	var totalSize int64
+
+	// 只在进度条模式下计算总大小
+	if !cfg.Progress.Enabled || cfg.Progress.BarStyle == types.ProgressStyleText {
+		return 0
+	}
+
+	// 开始扫描进度显示
+	bar := cfg.Progress.StartScan("正在分析内容...")
+	defer func() {
+		_ = cfg.Progress.CloseBar(bar)
+	}()
+
+	// 打开 TGZ 文件进行扫描
+	tgzFile, err := os.Open(tgzFilePath)
+	if err != nil {
+		return 0
+	}
+	defer func() { _ = tgzFile.Close() }()
+
+	// 创建 GZIP 读取器
+	gzipReader, err := gzip.NewReader(tgzFile)
+	if err != nil {
+		return 0
+	}
+	defer func() { _ = gzipReader.Close() }()
+
+	// 创建 TAR 读取器
+	tarReader := tar.NewReader(gzipReader)
+
+	// 遍历TAR文件中的所有条目
+	for {
+		header, err := tarReader.Next()
+		if err == io.EOF {
+			break
+		}
+		if err != nil {
+			break // 出错时停止扫描
+		}
+
+		// 只计算普通文件的大小
+		if header.Typeflag == tar.TypeReg {
+			totalSize += header.Size   // 累加普通文件大小
+			_ = bar.Add64(header.Size) // 更新进度条
+		}
+	}
+
+	return totalSize
+}
+
 // extractDirectory 处理目录解压
 //
 // 参数:
@@ -119,15 +187,15 @@ func extractDirectory(targetPath, fileName string) error {
 //   - tarReader: TAR读取器
 //   - targetPath: 目标路径
 //   - header: TAR文件头
-//   - config: 解压配置
+//   - cfg: 解压配置
 //
 // 返回值:
 //   - error: 操作过程中遇到的错误
-func extractRegularFile(tarReader *tar.Reader, targetPath string, header *tar.Header, config *config.Config) error {
+func extractRegularFile(tarReader *tar.Reader, targetPath string, header *tar.Header, cfg *config.Config) error {
 	// 检查目标文件是否已存在
 	if _, err := os.Stat(targetPath); err == nil {
 		// 文件已存在，检查是否允许覆盖
-		if !config.OverwriteExisting {
+		if !cfg.OverwriteExisting {
 			return fmt.Errorf("目标文件已存在且不允许覆盖: %s", targetPath)
 		}
 	}
@@ -167,7 +235,7 @@ func extractRegularFile(tarReader *tar.Reader, targetPath string, header *tar.He
 	defer utils.PutBuffer(buffer)
 
 	// 将文件内容写入目标文件
-	if _, err := io.CopyBuffer(fileWriter, tarReader, buffer); err != nil {
+	if _, err := cfg.Progress.CopyBuffer(fileWriter, tarReader, buffer); err != nil {
 		return fmt.Errorf("处理文件 '%s' 时出错 - 写入文件失败: %w", header.Name, err)
 	}
 

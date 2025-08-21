@@ -10,7 +10,53 @@ import (
 
 	"gitee.com/MM-Q/comprx/config"
 	"gitee.com/MM-Q/comprx/internal/utils"
+	"gitee.com/MM-Q/comprx/types"
 )
+
+// calculateGzipTotalSize 计算GZIP文件的解压后大小
+//
+// 参数:
+//   - gzipFilePath: GZIP文件路径
+//   - cfg: 解压配置
+//
+// 返回值:
+//   - int64: 解压后的文件大小（字节）
+func calculateGzipTotalSize(gzipFilePath string, cfg *config.Config) int64 {
+	// 只在进度条模式下计算总大小
+	if !cfg.Progress.Enabled || cfg.Progress.BarStyle == types.ProgressStyleText {
+		return 0
+	}
+
+	// 开始扫描进度显示
+	bar := cfg.Progress.StartScan("正在分析内容...")
+	defer func() {
+		_ = cfg.Progress.CloseBar(bar)
+	}()
+
+	// 打开GZIP文件进行扫描
+	gzipFile, err := os.Open(gzipFilePath)
+	if err != nil {
+		return 0
+	}
+	defer func() { _ = gzipFile.Close() }()
+
+	// 创建GZIP读取器
+	gzipReader, err := gzip.NewReader(gzipFile)
+	if err != nil {
+		return 0
+	}
+	defer func() { _ = gzipReader.Close() }()
+
+	// 由于GZIP是流式压缩，我们需要读取整个文件来计算大小
+	// 使用进度条作为写入器，直接通过io.CopyBuffer计算总大小
+	buffer := make([]byte, 32*1024) // 32KB缓冲区
+	totalSize, err := io.CopyBuffer(bar, gzipReader, buffer)
+	if err != nil {
+		return 0 // 如果出错，返回0表示无法计算大小
+	}
+
+	return totalSize
+}
 
 // Ungzip 解压缩 GZIP 文件
 //
@@ -22,8 +68,16 @@ import (
 // 返回值:
 //   - error: 解压缩过程中发生的错误
 func Ungzip(gzipFilePath string, targetPath string, config *config.Config) error {
-	// 打印压缩文件信息
-	config.Progress.Compressing(gzipFilePath)
+	// 在进度条模式下计算总大小
+	totalSize := calculateGzipTotalSize(gzipFilePath, config)
+
+	// 开始进度显示
+	if err := config.Progress.Start(totalSize, gzipFilePath, fmt.Sprintf("正在解压 %s...", filepath.Base(gzipFilePath))); err != nil {
+		return fmt.Errorf("开始进度显示失败: %w", err)
+	}
+	defer func() {
+		_ = config.Progress.Close()
+	}()
 
 	// 打开 GZIP 文件（同时检查文件是否存在）
 	gzipFile, err := os.Open(gzipFilePath)
@@ -98,7 +152,7 @@ func Ungzip(gzipFilePath string, targetPath string, config *config.Config) error
 	config.Progress.Inflating(targetPath)
 
 	// 解压缩文件内容
-	if _, err := io.CopyBuffer(targetFile, gzipReader, buffer); err != nil {
+	if _, err := config.Progress.CopyBuffer(targetFile, gzipReader, buffer); err != nil {
 		return fmt.Errorf("解压缩文件失败: %w", err)
 	}
 

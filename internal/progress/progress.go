@@ -46,19 +46,33 @@ func New() *Progress {
 //
 // 参数:
 //   - totalSize: 总数据大小
-//   - description: 操作描述（如"解压'archive.zip'"）
+//   - archivePath: 压缩包路径（用于文本模式显示）
+//   - description: 操作描述（用于进度条模式显示，如"正在解压 xxx.zip..."）
 //
 // 返回:
 //   - error: 初始化错误
-func (s *Progress) Start(totalSize int64, description string) error {
-	// 进度条未启用 或 已存在活跃进度条 则返回
+func (s *Progress) Start(totalSize int64, archivePath, description string) error {
+	// 未启用 或 已存在活跃进度条 则返回
 	if !s.Enabled || s.isActive {
 		return nil
 	}
 
-	// 文本模式: 显示Archive信息
-	if s.BarStyle == types.ProgressStyleText {
-		s.Archive(description)
+	// 文本模式 或 总大小小于等于0 则显示Archive信息(文本模式)
+	if s.BarStyle == types.ProgressStyleText || totalSize <= 0 {
+		ext := filepath.Ext(archivePath)
+		if ext == "" {
+			s.Archive(archivePath)
+			return nil
+		}
+
+		// 如果是bz2、gz、bzip2格式的压缩文件，则显示压缩文件信息
+		if ext == types.CompressTypeBz2.String() || ext == types.CompressTypeGz.String() || ext == types.CompressTypeBzip2.String() {
+			s.Compressing(archivePath)
+			return nil
+		}
+
+		// 如果是其他格式的压缩包，则显示压缩包信息
+		s.Archive(archivePath)
 		return nil
 	}
 
@@ -161,7 +175,7 @@ func (s *Progress) CopyBuffer(dst io.Writer, src io.Reader, buf []byte) (written
 // 使用示例:
 //   - err := cfg.Progress.Close()
 func (s *Progress) Close() error {
-	// 进度条未启用 或 未开始 或 进度条实例为空 则直接返回
+	// 没有使用的进度条 或 未启用 或 进度条实例为空 则直接返回
 	if !s.isActive || !s.Enabled || s.currentBar == nil {
 		return nil
 	}

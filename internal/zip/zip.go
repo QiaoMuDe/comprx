@@ -3,7 +3,6 @@ package zip
 import (
 	"archive/zip"
 	"fmt"
-	"io"
 	"io/fs"
 	"os"
 	"path/filepath"
@@ -44,8 +43,16 @@ func Zip(dst string, src string, cfg *config.Config) error {
 		return fmt.Errorf("创建目标目录失败: %w", err)
 	}
 
-	// 打印压缩文件信息
-	cfg.Progress.Archive(dst)
+	// 在进度条模式下计算源文件总大小
+	totalSize := utils.CalculateSourceTotalSizeWithProgress(src, cfg, "正在分析内容...")
+
+	// 开始进度显示
+	if err := cfg.Progress.Start(totalSize, dst, fmt.Sprintf("正在压缩 %s...", filepath.Base(dst))); err != nil {
+		return fmt.Errorf("开始进度显示失败: %w", err)
+	}
+	defer func() {
+		_ = cfg.Progress.Close()
+	}()
 
 	// 创建 ZIP 文件
 	zipFile, err := os.Create(dst)
@@ -125,7 +132,7 @@ func processRegularFile(zipWriter *zip.Writer, path, headerName string, info os.
 	defer utils.PutBuffer(buffer)
 
 	// 复制文件内容到ZIP写入器
-	if _, err := io.CopyBuffer(fileWriter, file, buffer); err != nil {
+	if _, err := cfg.Progress.CopyBuffer(fileWriter, file, buffer); err != nil {
 		return fmt.Errorf("处理文件 '%s' 时出错 - 写入 ZIP 文件失败: %w", path, err)
 	}
 

@@ -4,7 +4,7 @@ import (
 	"archive/tar"
 	"compress/gzip"
 	"fmt"
-	"io"
+	"io/fs"
 	"os"
 	"path/filepath"
 
@@ -50,8 +50,16 @@ func Tgz(dst string, src string, cfg *config.Config) error {
 		return fmt.Errorf("创建目标目录失败: %w", err)
 	}
 
-	// 打印压缩文件信息
-	cfg.Progress.Archive(dst)
+	// 在进度条模式下计算源文件总大小
+	totalSize := utils.CalculateSourceTotalSizeWithProgress(src, cfg, "正在分析内容...")
+
+	// 开始进度显示
+	if err := cfg.Progress.Start(totalSize, dst, fmt.Sprintf("正在压缩 %s...", filepath.Base(dst))); err != nil {
+		return fmt.Errorf("开始进度显示失败: %w", err)
+	}
+	defer func() {
+		_ = cfg.Progress.Close()
+	}()
 
 	// 创建 TGZ 文件
 	tgzFile, err := os.Create(dst)
@@ -79,7 +87,7 @@ func Tgz(dst string, src string, cfg *config.Config) error {
 	} else {
 		// 单文件处理逻辑
 		cfg.Progress.Adding(src) // 添加文件到进度条
-		tgzErr = processRegularFile(tarWriter, src, filepath.Base(src), srcInfo)
+		tgzErr = processRegularFile(tarWriter, src, filepath.Base(src), srcInfo, cfg)
 	}
 
 	// 检查是否有错误发生
@@ -97,10 +105,11 @@ func Tgz(dst string, src string, cfg *config.Config) error {
 //   - path: string - 文件路径
 //   - headerName: string - TAR 文件中的文件名
 //   - info: os.FileInfo - 文件信息
+//   - cfg: 压缩配置
 //
 // 返回值:
 //   - error - 操作过程中遇到的错误
-func processRegularFile(tarWriter *tar.Writer, path, headerName string, info os.FileInfo) error {
+func processRegularFile(tarWriter *tar.Writer, path, headerName string, info os.FileInfo, cfg *config.Config) error {
 	// 创建文件头
 	header, err := tar.FileInfoHeader(info, "")
 	if err != nil {
@@ -129,7 +138,7 @@ func processRegularFile(tarWriter *tar.Writer, path, headerName string, info os.
 	defer utils.PutBuffer(buffer)
 
 	// 复制文件内容到TAR写入器
-	if _, err := io.CopyBuffer(tarWriter, file, buffer); err != nil {
+	if _, err := cfg.Progress.CopyBuffer(tarWriter, file, buffer); err != nil {
 		return fmt.Errorf("处理文件 '%s' 时出错 - 写入 TAR 文件失败: %w", path, err)
 	}
 
@@ -226,7 +235,7 @@ func processSpecialFile(tarWriter *tar.Writer, headerName string, info os.FileIn
 // 返回值:
 //   - error: 遍历过程中发生的错误
 func walkDirectoryForTgz(src string, tarWriter *tar.Writer, cfg *config.Config) error {
-	return filepath.WalkDir(src, func(path string, entry os.DirEntry, err error) error {
+	return filepath.WalkDir(src, func(path string, entry fs.DirEntry, err error) error {
 		if err != nil {
 			// 如果不存在则忽略
 			if os.IsNotExist(err) {
@@ -254,7 +263,7 @@ func walkDirectoryForTgz(src string, tarWriter *tar.Writer, cfg *config.Config) 
 				return fmt.Errorf("处理文件 '%s' 时出错 - 获取文件信息失败: %w", path, err)
 			}
 			cfg.Progress.Adding(headerName) // 更新进度
-			return processRegularFile(tarWriter, path, headerName, info)
+			return processRegularFile(tarWriter, path, headerName, info, cfg)
 
 		// 处理目录
 		case entry.IsDir():
