@@ -10,6 +10,8 @@ import (
 	"gitee.com/MM-Q/comprx/types"
 )
 
+// ================================ 内存压缩API ================================
+
 // CompressBytes 压缩字节数据到内存
 //
 // 参数:
@@ -147,4 +149,95 @@ func DecompressString(compressedData []byte) (string, error) {
 
 	// 转换为字符串
 	return string(decompressed), nil
+}
+
+// ==================== 流式压缩API ====================
+
+// CompressStream 流式压缩数据
+//
+// 参数:
+//   - dst: 目标写入器
+//   - src: 源读取器
+//   - level: 压缩级别
+//
+// 返回:
+//   - error: 错误信息
+func CompressStream(dst io.Writer, src io.Reader, level types.CompressionLevel) (err error) {
+	// 1. 参数验证
+	if dst == nil {
+		err = fmt.Errorf("目标写入器不能为nil")
+		return
+	}
+	if src == nil {
+		err = fmt.Errorf("源读取器不能为nil")
+		return
+	}
+
+	// 2. 创建gzip写入器
+	writer, createErr := gzip.NewWriterLevel(dst, config.GetCompressionLevel(level))
+	if createErr != nil {
+		err = fmt.Errorf("创建gzip写入器失败: %w", createErr)
+		return
+	}
+	defer func() {
+		if closeErr := writer.Close(); closeErr != nil && err == nil {
+			// 只有在没有其他错误时才设置关闭错误
+			err = fmt.Errorf("关闭gzip写入器失败: %w", closeErr)
+		}
+	}()
+
+	// 3. 流式复制数据
+	if _, copyErr := io.Copy(writer, src); copyErr != nil {
+		err = fmt.Errorf("压缩数据失败: %w", copyErr)
+		return
+	}
+
+	// 4. 确保数据完整写入
+	if closeErr := writer.Close(); closeErr != nil {
+		err = fmt.Errorf("完成压缩失败: %w", closeErr)
+		return
+	}
+
+	return
+}
+
+// DecompressStream 流式解压数据
+//
+// 参数:
+//   - dst: 目标写入器
+//   - src: 源读取器（压缩数据）
+//
+// 返回:
+//   - error: 错误信息
+func DecompressStream(dst io.Writer, src io.Reader) (err error) {
+	// 1. 参数验证
+	if dst == nil {
+		err = fmt.Errorf("目标写入器不能为nil")
+		return
+	}
+	if src == nil {
+		err = fmt.Errorf("源读取器不能为nil")
+		return
+	}
+
+	// 2. 创建gzip读取器
+	reader, createErr := gzip.NewReader(src)
+	if createErr != nil {
+		err = fmt.Errorf("创建gzip读取器失败: %w", createErr)
+		return
+	}
+	defer func() {
+		if closeErr := reader.Close(); closeErr != nil && err == nil {
+			// 只有在没有其他错误时才设置关闭错误
+			err = fmt.Errorf("关闭gzip读取器失败: %w", closeErr)
+		}
+	}()
+
+	// 3. 流式复制数据
+	if _, copyErr := io.Copy(dst, reader); copyErr != nil {
+		err = fmt.Errorf("解压数据失败: %w", copyErr)
+		return
+	}
+
+	return
 }

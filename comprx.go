@@ -1,6 +1,8 @@
 package comprx
 
 import (
+	"io"
+
 	"gitee.com/MM-Q/comprx/internal/core"
 	"gitee.com/MM-Q/comprx/internal/cxgzip"
 	"gitee.com/MM-Q/comprx/types"
@@ -204,4 +206,71 @@ func GzipString(text string, level types.CompressionLevel) ([]byte, error) {
 //	text, err := UngzipString(compressedData)
 func UngzipString(compressedData []byte) (string, error) {
 	return cxgzip.DecompressString(compressedData)
+}
+
+// ==================== 流式压缩API ====================
+
+// GzipStream 流式压缩数据（使用默认压缩等级）
+//
+// 参数:
+//   - dst: 目标写入器
+//   - src: 源读取器
+//
+// 返回:
+//   - error: 错误信息
+//
+// 使用示例:
+//
+//	file, _ := os.Open("input.txt")
+//	defer file.Close()
+//
+//	var buf bytes.Buffer
+//	err := GzipStream(&buf, file)
+func GzipStream(dst io.Writer, src io.Reader) error {
+	return cxgzip.CompressStream(dst, src, types.CompressionLevelDefault)
+}
+
+// GzipStreamWithLevel 流式压缩数据（指定压缩等级）
+//
+// 参数:
+//   - dst: 目标写入器
+//   - src: 源读取器
+//   - level: 压缩级别
+//
+// 返回:
+//   - error: 错误信息
+//
+// 使用示例:
+//
+//	file, _ := os.Open("input.txt")
+//	defer file.Close()
+//
+//	output, _ := os.Create("output.gz")
+//	defer output.Close()
+//
+//	err := GzipStreamWithLevel(output, file, types.CompressionLevelBest)
+func GzipStreamWithLevel(dst io.Writer, src io.Reader, level types.CompressionLevel) error {
+	return cxgzip.CompressStream(dst, src, level)
+}
+
+// UngzipStream 流式解压数据
+//
+// 参数:
+//   - dst: 目标写入器
+//   - src: 源读取器（压缩数据）
+//
+// 返回:
+//   - error: 错误信息
+//
+// 使用示例:
+//
+//	compressedFile, _ := os.Open("input.gz")
+//	defer compressedFile.Close()
+//
+//	output, _ := os.Create("output.txt")
+//	defer output.Close()
+//
+//	err := UngzipStream(output, compressedFile)
+func UngzipStream(dst io.Writer, src io.Reader) error {
+	return cxgzip.DecompressStream(dst, src)
 }
