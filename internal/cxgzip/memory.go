@@ -41,15 +41,16 @@ func CompressBytes(data []byte, level types.CompressionLevel) (result []byte, er
 	if err != nil {
 		return nil, fmt.Errorf("创建gzip写入器失败: %w", err)
 	}
-	defer func() {
-		if cerr := writer.Close(); cerr != nil && err == nil {
-			err = fmt.Errorf("完成压缩失败: %w", cerr)
-		}
-	}()
 
 	// 直接写入数据，无需额外缓冲区
 	if _, err = writer.Write(data); err != nil {
+		_ = writer.Close() // 确保资源清理
 		return nil, fmt.Errorf("压缩数据失败: %w", err)
+	}
+
+	// 关闭写入器确保数据完整写入
+	if err = writer.Close(); err != nil {
+		return nil, fmt.Errorf("完成压缩失败: %w", err)
 	}
 
 	return buf.Bytes(), nil
@@ -80,11 +81,6 @@ func DecompressBytes(compressedData []byte) (result []byte, err error) {
 	if err != nil {
 		return nil, fmt.Errorf("创建gzip读取器失败: %w", err)
 	}
-	defer func() {
-		if cerr := gzipReader.Close(); cerr != nil && err == nil {
-			err = fmt.Errorf("关闭gzip读取器失败: %w", cerr)
-		}
-	}()
 
 	// 预分配解压缓冲区 - 解压通常是压缩数据的2-3倍
 	estimatedSize := len(compressedData) * 2
@@ -95,7 +91,13 @@ func DecompressBytes(compressedData []byte) (result []byte, err error) {
 
 	// 直接读取解压数据，无需额外缓冲区
 	if _, err = io.Copy(buf, gzipReader); err != nil {
+		_ = gzipReader.Close() // 确保资源清理
 		return nil, fmt.Errorf("解压数据失败: %w", err)
+	}
+
+	// 关闭读取器
+	if err = gzipReader.Close(); err != nil {
+		return nil, fmt.Errorf("关闭gzip读取器失败: %w", err)
 	}
 
 	return buf.Bytes(), nil
