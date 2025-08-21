@@ -96,7 +96,7 @@ func TestProgressConcurrency(t *testing.T) {
 			defer wg.Done()
 
 			zipFile := filepath.Join(tempDir, fmt.Sprintf("progress_test_%d.zip", id))
-			err := PackWithProgress(zipFile, testFile)
+			err := PackProgress(zipFile, testFile)
 			if err != nil {
 				t.Logf("Goroutine %d PackWithProgress失败: %v", id, err)
 			} else {

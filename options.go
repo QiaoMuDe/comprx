@@ -35,44 +35,6 @@ func DefaultOptions() Options {
 	}
 }
 
-// FastOptions 返回快速压缩配置选项
-//
-// 返回:
-//   - Options: 快速压缩配置选项
-//
-// 配置特点:
-//   - 使用快速压缩等级
-//   - 启用进度显示
-//   - 允许覆盖已存在文件
-func FastOptions() Options {
-	return Options{
-		CompressionLevel:      config.CompressionLevelFast, // 快速压缩
-		OverwriteExisting:     true,                        // 允许覆盖已存在文件
-		ProgressEnabled:       true,                        // 启用进度显示
-		ProgressStyle:         types.ProgressStyleText,     // 文本样式
-		DisablePathValidation: false,                       // 启用路径验证
-	}
-}
-
-// BestOptions 返回最佳压缩配置选项
-//
-// 返回:
-//   - Options: 最佳压缩配置选项
-//
-// 配置特点:
-//   - 使用最佳压缩等级
-//   - 启用进度显示
-//   - 允许覆盖已存在文件
-func BestOptions() Options {
-	return Options{
-		CompressionLevel:      config.CompressionLevelBest, // 最佳压缩
-		OverwriteExisting:     true,                        // 允许覆盖已存在文件
-		ProgressEnabled:       true,                        // 启用进度显示
-		ProgressStyle:         types.ProgressStyleText,     // 文本样式
-		DisablePathValidation: false,                       // 启用路径验证
-	}
-}
-
 // ProgressOptions 返回带进度显示的配置选项
 //
 // 参数:
@@ -87,21 +49,68 @@ func ProgressOptions(style types.ProgressStyle) Options {
 	return opts
 }
 
-// QuietOptions 返回静默模式配置选项
+// TextProgressOptions 返回文本样式进度条配置选项
 //
 // 返回:
-//   - Options: 静默模式配置选项
+//   - Options: 文本样式进度条配置选项
+//
+// 使用示例:
+//
+//	err := PackOptions("output.zip", "input_dir", TextProgressOptions())
+func TextProgressOptions() Options {
+	opts := DefaultOptions()
+	opts.ProgressEnabled = true
+	opts.ProgressStyle = types.ProgressStyleText
+	return opts
+}
+
+// UnicodeProgressOptions 返回Unicode样式进度条配置选项
+//
+// 返回:
+//   - Options: Unicode样式进度条配置选项
+//
+// 使用示例:
+//
+//	err := PackOptions("output.zip", "input_dir", UnicodeProgressOptions())
+func UnicodeProgressOptions() Options {
+	opts := DefaultOptions()
+	opts.ProgressEnabled = true
+	opts.ProgressStyle = types.ProgressStyleUnicode
+	return opts
+}
+
+// ASCIIProgressOptions 返回ASCII样式进度条配置选项
+//
+// 返回:
+//   - Options: ASCII样式进度条配置选项
+//
+// 使用示例:
+//
+//	err := PackOptions("output.zip", "input_dir", ASCIIProgressOptions())
+func ASCIIProgressOptions() Options {
+	opts := DefaultOptions()
+	opts.ProgressEnabled = true
+	opts.ProgressStyle = types.ProgressStyleASCII
+	return opts
+}
+
+// ForceOptions 返回强制模式配置选项
+//
+// 返回:
+//   - Options: 强制模式配置选项
 //
 // 配置特点:
-//   - 不显示进度
-//   - 允许覆盖已存在文件
-//   - 禁用路径验证（提高性能）
-func QuietOptions() Options {
-	return Options{
-		CompressionLevel:      config.CompressionLevelDefault,
-		OverwriteExisting:     true,
-		ProgressEnabled:       false,
-		ProgressStyle:         types.ProgressStyleText,
-		DisablePathValidation: true,
-	}
+//   - OverwriteExisting: true (覆盖已存在文件)
+//   - DisablePathValidation: true (禁用路径验证)
+//   - ProgressEnabled: false (关闭进度条)
+//
+// 使用示例:
+//
+//	err := PackOptions("output.zip", "input_dir", ForceOptions())
+func ForceOptions() Options {
+	opts := DefaultOptions()
+	opts.OverwriteExisting = true
+	opts.DisablePathValidation = true
+	opts.ProgressEnabled = false
+	return opts
 }

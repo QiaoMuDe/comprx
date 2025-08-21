@@ -131,7 +131,7 @@ func TestConcurrentPackWithProgress(t *testing.T) {
 			srcFile := testFiles[id%len(testFiles)]
 			dstFile := filepath.Join(tempDir, fmt.Sprintf("progress_test_%d.zip", id))
 
-			err := PackWithProgress(dstFile, srcFile)
+			err := PackProgress(dstFile, srcFile)
 			if err != nil {
 				t.Logf("Goroutine %d PackWithProgress失败: %v", id, err)
 			} else {
@@ -350,7 +350,7 @@ func TestRaceConditionDetection(t *testing.T) {
 			case 0:
 				_ = Pack(dstFile, srcFile)
 			case 1:
-				_ = PackWithProgress(dstFile, srcFile)
+				_ = PackProgress(dstFile, srcFile)
 			case 2:
 				comprx := core.New().WithProgressAndStyle(true, types.ProgressStyleUnicode)
 				_ = comprx.Pack(dstFile, srcFile)
