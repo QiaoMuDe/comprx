@@ -42,8 +42,15 @@ func ListTgz(archivePath string) (*types.ArchiveInfo, error) {
 	// 创建TAR读取器
 	tarReader := tar.NewReader(gzipReader)
 
+	// 根据文件名检测压缩格式类型
+	compressType, err := types.DetectCompressFormat(absPath)
+	if err != nil {
+		return nil, fmt.Errorf("检测压缩格式失败: %w", err)
+	}
+
+	// 创建 ArchiveInfo 结构体
 	archiveInfo := &types.ArchiveInfo{
-		Type:           types.CompressTypeTgz,
+		Type:           compressType,
 		CompressedSize: stat.Size(),
 		Files:          make([]types.FileInfo, 0, utils.DefaultFileCapacity),
 	}
@@ -112,8 +119,15 @@ func ListTgzLimit(archivePath string, limit int) (*types.ArchiveInfo, error) {
 	// 创建TAR读取器
 	tarReader := tar.NewReader(gzipReader)
 
+	// 根据文件名检测压缩格式类型
+	compressType, err := types.DetectCompressFormat(absPath)
+	if err != nil {
+		return nil, fmt.Errorf("检测压缩格式失败: %w", err)
+	}
+
+	// 创建 ArchiveInfo 结构体
 	archiveInfo := &types.ArchiveInfo{
-		Type:           types.CompressTypeTgz,
+		Type:           compressType,
 		CompressedSize: stat.Size(),
 		Files:          make([]types.FileInfo, 0, utils.DefaultFileCapacity),
 	}

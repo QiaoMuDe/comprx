@@ -30,8 +30,15 @@ func ListZip(archivePath string) (*types.ArchiveInfo, error) {
 		return nil, fmt.Errorf("获取ZIP文件信息失败: %w", err)
 	}
 
+	// 根据文件名检测压缩格式类型
+	compressType, err := types.DetectCompressFormat(absPath)
+	if err != nil {
+		return nil, fmt.Errorf("检测压缩格式失败: %w", err)
+	}
+
+	// 创建 ArchiveInfo 结构体
 	archiveInfo := &types.ArchiveInfo{
-		Type:           types.CompressTypeZip,
+		Type:           compressType,
 		TotalFiles:     len(reader.File),
 		CompressedSize: stat.Size(),
 		Files:          make([]types.FileInfo, 0, len(reader.File)),
@@ -91,8 +98,15 @@ func ListZipLimit(archivePath string, limit int) (*types.ArchiveInfo, error) {
 		maxFiles = limit
 	}
 
+	// 根据文件名检测压缩格式类型
+	compressType, err := types.DetectCompressFormat(absPath)
+	if err != nil {
+		return nil, fmt.Errorf("检测压缩格式失败: %w", err)
+	}
+
+	// 创建 ArchiveInfo 结构体
 	archiveInfo := &types.ArchiveInfo{
-		Type:           types.CompressTypeZip,
+		Type:           compressType,
 		TotalFiles:     maxFiles, // 注意：这里是实际返回的文件数
 		CompressedSize: stat.Size(),
 		Files:          make([]types.FileInfo, 0, maxFiles), // 优化容量分配

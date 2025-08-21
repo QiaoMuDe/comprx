@@ -63,6 +63,7 @@ func ListBz2(archivePath string) (*types.ArchiveInfo, error) {
 		originalSize += int64(n)
 	}
 
+	// 创建BZ2文件信息
 	fileInfo := types.FileInfo{
 		Name:           originalName,
 		Size:           originalSize,
@@ -73,8 +74,15 @@ func ListBz2(archivePath string) (*types.ArchiveInfo, error) {
 		IsSymlink:      false,
 	}
 
+	// 根据文件名检测压缩格式类型
+	compressType, err := types.DetectCompressFormat(absPath)
+	if err != nil {
+		return nil, fmt.Errorf("检测压缩格式失败: %w", err)
+	}
+
+	// 创建BZ2文件信息
 	archiveInfo := &types.ArchiveInfo{
-		Type:           types.CompressTypeBz2,
+		Type:           compressType,
 		TotalFiles:     1,
 		TotalSize:      originalSize,
 		CompressedSize: stat.Size(),
