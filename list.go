@@ -3,12 +3,12 @@ package comprx
 import (
 	"fmt"
 
-	"gitee.com/MM-Q/comprx/internal/bzip2"
-	"gitee.com/MM-Q/comprx/internal/gzip"
-	"gitee.com/MM-Q/comprx/internal/tar"
-	"gitee.com/MM-Q/comprx/internal/tgz"
+	"gitee.com/MM-Q/comprx/internal/cxbzip2"
+	"gitee.com/MM-Q/comprx/internal/cxgzip"
+	"gitee.com/MM-Q/comprx/internal/cxtar"
+	"gitee.com/MM-Q/comprx/internal/cxtgz"
+	"gitee.com/MM-Q/comprx/internal/cxzip"
 	"gitee.com/MM-Q/comprx/internal/utils"
-	"gitee.com/MM-Q/comprx/internal/zip"
 	"gitee.com/MM-Q/comprx/types"
 )
 
@@ -39,15 +39,20 @@ func List(archivePath string) (*types.ArchiveInfo, error) {
 	// 根据压缩格式调用对应的列表函数
 	switch compressType {
 	case types.CompressTypeZip: // Zip
-		return zip.ListZip(archivePath)
+		return cxzip.ListZip(archivePath)
+
 	case types.CompressTypeTar: // Tar
-		return tar.ListTar(archivePath)
+		return cxtar.ListTar(archivePath)
+
 	case types.CompressTypeTgz, types.CompressTypeTarGz: // Tar.gz 或 .tgz
-		return tgz.ListTgz(archivePath)
+		return cxtgz.ListTgz(archivePath)
+
 	case types.CompressTypeGz: // Gz
-		return gzip.ListGzip(archivePath)
+		return cxgzip.ListGzip(archivePath)
+
 	case types.CompressTypeBz2, types.CompressTypeBzip2: // Bz2
-		return bzip2.ListBz2(archivePath)
+		return cxbzip2.ListBz2(archivePath)
+
 	default:
 		return nil, fmt.Errorf("不支持的压缩格式: %s", compressType)
 	}
@@ -77,15 +82,20 @@ func ListLimit(archivePath string, limit int) (*types.ArchiveInfo, error) {
 	// 根据压缩格式调用对应的列表函数
 	switch compressType {
 	case types.CompressTypeZip: // Zip
-		return zip.ListZipLimit(archivePath, limit)
+		return cxzip.ListZipLimit(archivePath, limit)
+
 	case types.CompressTypeTar: // Tar
-		return tar.ListTarLimit(archivePath, limit)
+		return cxtar.ListTarLimit(archivePath, limit)
+
 	case types.CompressTypeTgz, types.CompressTypeTarGz: // Tar.gz 或 .tgz
-		return tgz.ListTgzLimit(archivePath, limit)
+		return cxtgz.ListTgzLimit(archivePath, limit)
+
 	case types.CompressTypeGz: // Gz
-		return gzip.ListGzipLimit(archivePath, limit)
+		return cxgzip.ListGzipLimit(archivePath, limit)
+
 	case types.CompressTypeBz2, types.CompressTypeBzip2: // Bz2
-		return bzip2.ListBz2Limit(archivePath, limit)
+		return cxbzip2.ListBz2Limit(archivePath, limit)
+
 	default:
 		return nil, fmt.Errorf("不支持的压缩格式: %s", compressType)
 	}
@@ -115,15 +125,20 @@ func ListMatch(archivePath string, pattern string) (*types.ArchiveInfo, error) {
 	// 根据压缩格式调用对应的列表函数
 	switch compressType {
 	case types.CompressTypeZip: // Zip
-		return zip.ListZipMatch(archivePath, pattern)
+		return cxzip.ListZipMatch(archivePath, pattern)
+
 	case types.CompressTypeTar: // Tar
-		return tar.ListTarMatch(archivePath, pattern)
+		return cxtar.ListTarMatch(archivePath, pattern)
+
 	case types.CompressTypeTgz, types.CompressTypeTarGz: // Tar.gz 或 .tgz
-		return tgz.ListTgzMatch(archivePath, pattern)
+		return cxtgz.ListTgzMatch(archivePath, pattern)
+
 	case types.CompressTypeGz: // Gz
-		return gzip.ListGzipMatch(archivePath, pattern)
+		return cxgzip.ListGzipMatch(archivePath, pattern)
+
 	case types.CompressTypeBz2, types.CompressTypeBzip2: // Bz2
-		return bzip2.ListBz2Match(archivePath, pattern)
+		return cxbzip2.ListBz2Match(archivePath, pattern)
+
 	default:
 		return nil, fmt.Errorf("不支持的压缩格式: %s", compressType)
 	}

@@ -34,15 +34,24 @@ func New() *Config {
 //   - int - 压缩等级
 func GetCompressionLevel(cfg *Config) int {
 	switch cfg.CompressionLevel {
+	// 不进行压缩
 	case types.CompressionLevelNone:
-		return gzip.NoCompression // 不进行压缩
+		return gzip.NoCompression
+
+	// 快速压缩
 	case types.CompressionLevelFast:
-		return gzip.BestSpeed // 快速压缩
+		return gzip.BestSpeed
+
+	// 最佳压缩
 	case types.CompressionLevelBest:
-		return gzip.BestCompression // 最佳压缩
+		return gzip.BestCompression
+
+	// 只使用哈夫曼编码
 	case types.CompressionLevelHuffmanOnly:
-		return gzip.HuffmanOnly // 只使用哈夫曼编码
+		return gzip.HuffmanOnly
+
+	// 默认的压缩等级
 	default:
-		return gzip.DefaultCompression // 默认的压缩等级
+		return gzip.DefaultCompression
 	}
 }

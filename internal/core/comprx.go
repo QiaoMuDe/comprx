@@ -6,12 +6,12 @@ import (
 	"strings"
 
 	"gitee.com/MM-Q/comprx/config"
-	"gitee.com/MM-Q/comprx/internal/bzip2"
-	"gitee.com/MM-Q/comprx/internal/gzip"
-	"gitee.com/MM-Q/comprx/internal/tar"
-	"gitee.com/MM-Q/comprx/internal/tgz"
+	"gitee.com/MM-Q/comprx/internal/cxbzip2"
+	"gitee.com/MM-Q/comprx/internal/cxgzip"
+	"gitee.com/MM-Q/comprx/internal/cxtar"
+	"gitee.com/MM-Q/comprx/internal/cxtgz"
+	"gitee.com/MM-Q/comprx/internal/cxzip"
 	"gitee.com/MM-Q/comprx/internal/utils"
-	"gitee.com/MM-Q/comprx/internal/zip"
 	"gitee.com/MM-Q/comprx/types"
 )
 
@@ -78,13 +78,13 @@ func (c *Comprx) Pack(dst string, src string) error {
 	// 根据压缩格式进行打包
 	switch compressType {
 	case types.CompressTypeZip: // Zip
-		return zip.Zip(dst, src, c.Config)
+		return cxzip.Zip(dst, src, c.Config)
 	case types.CompressTypeTar: // Tar
-		return tar.Tar(dst, src, c.Config)
+		return cxtar.Tar(dst, src, c.Config)
 	case types.CompressTypeTgz, types.CompressTypeTarGz: // Tar.gz 或 .tgz
-		return tgz.Tgz(dst, src, c.Config)
+		return cxtgz.Tgz(dst, src, c.Config)
 	case types.CompressTypeGz: // Gz
-		return gzip.Gzip(dst, src, c.Config)
+		return cxgzip.Gzip(dst, src, c.Config)
 	default:
 		return fmt.Errorf("不支持的压缩格式: %s", compressType)
 	}
@@ -135,19 +135,19 @@ func (c *Comprx) Unpack(src string, dst string) error {
 	// 根据压缩格式进行解压
 	switch compressType {
 	case types.CompressTypeZip: // Zip
-		return zip.Unzip(src, dst, c.Config)
+		return cxzip.Unzip(src, dst, c.Config)
 
 	case types.CompressTypeTar: // Tar
-		return tar.Untar(src, dst, c.Config)
+		return cxtar.Untar(src, dst, c.Config)
 
 	case types.CompressTypeTgz, types.CompressTypeTarGz: // Tgz, TarGz
-		return tgz.Untgz(src, dst, c.Config)
+		return cxtgz.Untgz(src, dst, c.Config)
 
 	case types.CompressTypeGz: // Gzip
-		return gzip.Ungzip(src, dst, c.Config)
+		return cxgzip.Ungzip(src, dst, c.Config)
 
 	case types.CompressTypeBz2, types.CompressTypeBzip2: // Bz2, Bzip2
-		return bzip2.Unbz2(src, dst, c.Config)
+		return cxbzip2.Unbz2(src, dst, c.Config)
 
 	default:
 		return fmt.Errorf("不支持的压缩格式: %s", compressType)

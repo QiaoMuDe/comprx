@@ -2,7 +2,7 @@ package comprx
 
 import (
 	"gitee.com/MM-Q/comprx/internal/core"
-	"gitee.com/MM-Q/comprx/internal/gzip"
+	"gitee.com/MM-Q/comprx/internal/cxgzip"
 	"gitee.com/MM-Q/comprx/types"
 )
 
@@ -154,7 +154,7 @@ func UnpackOptions(src string, dst string, opts Options) error {
 //
 //	compressed, err := GzipBytes([]byte("hello world"), types.CompressionLevelDefault)
 func GzipBytes(data []byte, level types.CompressionLevel) ([]byte, error) {
-	return gzip.CompressBytes(data, level)
+	return cxgzip.CompressBytes(data, level)
 }
 
 // UngzipBytes 解压字节数据
@@ -170,7 +170,7 @@ func GzipBytes(data []byte, level types.CompressionLevel) ([]byte, error) {
 //
 //	decompressed, err := UngzipBytes(compressedData)
 func UngzipBytes(compressedData []byte) ([]byte, error) {
-	return gzip.DecompressBytes(compressedData)
+	return cxgzip.DecompressBytes(compressedData)
 }
 
 // GzipString 压缩字符串
@@ -187,7 +187,7 @@ func UngzipBytes(compressedData []byte) ([]byte, error) {
 //
 //	compressed, err := GzipString("hello world", types.CompressionLevelBest)
 func GzipString(text string, level types.CompressionLevel) ([]byte, error) {
-	return gzip.CompressString(text, level)
+	return cxgzip.CompressString(text, level)
 }
 
 // UngzipString 解压为字符串
@@ -203,5 +203,5 @@ func GzipString(text string, level types.CompressionLevel) ([]byte, error) {
 //
 //	text, err := UngzipString(compressedData)
 func UngzipString(compressedData []byte) (string, error) {
-	return gzip.DecompressString(compressedData)
+	return cxgzip.DecompressString(compressedData)
 }

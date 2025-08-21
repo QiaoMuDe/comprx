@@ -124,7 +124,7 @@ func GetSize(path string) (int64, error) {
 //
 // 参数:
 //   - srcPath: 源路径（文件或目录）
-//   - cfg: 压缩配置
+//   - cfg: 压缩器配置
 //   - scanMessage: 扫描时显示的消息，如 "正在分析内容..."
 //
 // 返回值:
