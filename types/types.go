@@ -19,6 +19,9 @@ const (
 	// ProgressStyleText 文本样式进度条 - 使用文字描述进度
 	ProgressStyleText ProgressStyle = "text"
 
+	// ProgressStyleDefault 默认进度条样式 - progress库的默认进度条样式
+	ProgressStyleDefault ProgressStyle = "default"
+
 	// ProgressStyleUnicode Unicode样式进度条 - 使用Unicode字符绘制精美进度条
 	// 示例: ████████████░░░░░░░░ 60%
 	ProgressStyleUnicode ProgressStyle = "unicode"
@@ -36,7 +39,7 @@ func (ps ProgressStyle) String() string {
 // IsValid 检查进度条样式是否有效
 func (ps ProgressStyle) IsValid() bool {
 	switch ps {
-	case ProgressStyleText, ProgressStyleUnicode, ProgressStyleASCII:
+	case ProgressStyleText, ProgressStyleDefault, ProgressStyleUnicode, ProgressStyleASCII:
 		return true
 	default:
 		return false
@@ -47,6 +50,7 @@ func (ps ProgressStyle) IsValid() bool {
 func SupportedProgressStyles() []ProgressStyle {
 	return []ProgressStyle{
 		ProgressStyleText,
+		ProgressStyleDefault,
 		ProgressStyleUnicode,
 		ProgressStyleASCII,
 	}

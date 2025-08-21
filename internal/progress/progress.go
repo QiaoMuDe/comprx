@@ -201,6 +201,37 @@ func (s *Progress) Close() error {
 	return nil
 }
 
+// toTheme 将进度条样式转换为主题
+//
+// 参数:
+//   - style: 进度条样式
+//
+// 返回:
+//   - progressbar.Theme: 主题
+func toTheme(style types.ProgressStyle) progressbar.Theme {
+	switch style {
+	// 使用 unicode 样式
+	case types.ProgressStyleUnicode:
+		return progressbar.ThemeUnicode
+
+	/// 使用 ASCII 样式
+	case types.ProgressStyleASCII:
+		return progressbar.ThemeASCII
+
+	/// 使用默认样式
+	case types.ProgressStyleDefault:
+		return progressbar.ThemeDefault
+
+	// 如果指定文本样式则转为外部库的ASCII样式
+	case types.ProgressStyleText:
+		return progressbar.ThemeASCII
+
+	default:
+		// 默认使用ASCII样式，兼容性最好
+		return progressbar.ThemeASCII
+	}
+}
+
 // newProgressBar 创建一个进度条
 //
 // 参数:
@@ -213,14 +244,10 @@ func (s *Progress) Close() error {
 // 进度条样式:
 //   - types.ProgressStyleUnicode: Unicode样式进度条 - 使用Unicode字符绘制精美进度条
 //   - types.ProgressStyleASCII: ASCII样式进度条 - 使用基础ASCII字符绘制兼容性最好的进度条
+//   - types.ProgressStyleDefault: 默认样式进度条 - 使用外部库默认主题
 func (s *Progress) newProgressBar(total int64, description string) *progressbar.ProgressBar {
-	var theme progressbar.Theme
-	// 如果设置样式为Unicode, 否则默认使用ASCII样式
-	if s.BarStyle == types.ProgressStyleUnicode {
-		theme = progressbar.ThemeUnicode
-	} else {
-		theme = progressbar.ThemeASCII
-	}
+	// 转换进度条样式为主题
+	theme := toTheme(s.BarStyle)
 
 	return progressbar.NewOptions64(
 		total,                             // 进度条总大小
@@ -232,7 +259,7 @@ func (s *Progress) newProgressBar(total int64, description string) *progressbar.
 		progressbar.OptionShowBytes(true),             // 显示进度条传输的字节
 		progressbar.OptionShowCount(),                 // 显示当前进度的总和
 		//progressbar.OptionShowElapsedTimeOnFinish(),        // 完成后显示已用时间
-		progressbar.OptionSetTheme(theme), // ASCII 进度条主题(默认为 Unicode 进度条主题)
+		progressbar.OptionSetTheme(theme), // 设置进度条主题样式
 	)
 }
 

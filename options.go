@@ -94,6 +94,21 @@ func ASCIIProgressOptions() Options {
 	return opts
 }
 
+// DefaultProgressOptions 返回默认样式进度条配置选项
+//
+// 返回:
+//   - Options: 默认样式进度条配置选项
+//
+// 使用示例:
+//
+//	err := PackOptions("output.zip", "input_dir", DefaultProgressOptions())
+func DefaultProgressOptions() Options {
+	opts := DefaultOptions()
+	opts.ProgressEnabled = true
+	opts.ProgressStyle = types.ProgressStyleDefault
+	return opts
+}
+
 // ForceOptions 返回强制模式配置选项
 //
 // 返回:
