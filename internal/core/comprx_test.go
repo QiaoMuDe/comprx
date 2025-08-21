@@ -6,7 +6,7 @@ import (
 	"path/filepath"
 	"testing"
 
-	"gitee.com/MM-Q/comprx/config"
+	"gitee.com/MM-Q/comprx/types"
 )
 
 // TestMain 全局测试入口，控制非verbose模式下的输出重定向
@@ -50,8 +50,8 @@ func TestNew(t *testing.T) {
 	if c.Config == nil {
 		t.Fatal("config 未初始化")
 	}
-	if c.Config.CompressionLevel != config.CompressionLevelDefault {
-		t.Errorf("期望压缩级别为 %v, 实际为 %v", config.CompressionLevelDefault, c.Config.CompressionLevel)
+	if c.Config.CompressionLevel != types.CompressionLevelDefault {
+		t.Errorf("期望压缩级别为 %v, 实际为 %v", types.CompressionLevelDefault, c.Config.CompressionLevel)
 	}
 	if c.Config.OverwriteExisting != false {
 		t.Errorf("期望 OverwriteExisting 为 false, 实际为 %v", c.Config.OverwriteExisting)
@@ -110,11 +110,11 @@ func TestSetOverwriteExisting(t *testing.T) {
 func TestWithCompressionLevel(t *testing.T) {
 	c := New()
 
-	testCases := []config.CompressionLevel{
-		config.CompressionLevelNone,
-		config.CompressionLevelFast,
-		config.CompressionLevelBest,
-		config.CompressionLevelHuffmanOnly,
+	testCases := []types.CompressionLevel{
+		types.CompressionLevelNone,
+		types.CompressionLevelFast,
+		types.CompressionLevelBest,
+		types.CompressionLevelHuffmanOnly,
 	}
 
 	for _, level := range testCases {
@@ -132,11 +132,11 @@ func TestWithCompressionLevel(t *testing.T) {
 func TestSetCompressionLevel(t *testing.T) {
 	c := New()
 
-	testCases := []config.CompressionLevel{
-		config.CompressionLevelNone,
-		config.CompressionLevelFast,
-		config.CompressionLevelBest,
-		config.CompressionLevelHuffmanOnly,
+	testCases := []types.CompressionLevel{
+		types.CompressionLevelNone,
+		types.CompressionLevelFast,
+		types.CompressionLevelBest,
+		types.CompressionLevelHuffmanOnly,
 	}
 
 	for _, level := range testCases {
@@ -343,13 +343,13 @@ func TestUnpackAutoGenerateTargetDir(t *testing.T) {
 func TestChainedConfiguration(t *testing.T) {
 	c := New().
 		WithOverwriteExisting(true).
-		WithCompressionLevel(config.CompressionLevelBest)
+		WithCompressionLevel(types.CompressionLevelBest)
 
 	if !c.Config.OverwriteExisting {
 		t.Error("OverwriteExisting 应该为 true")
 	}
-	if c.Config.CompressionLevel != config.CompressionLevelBest {
-		t.Errorf("期望压缩级别为 %v, 实际为 %v", config.CompressionLevelBest, c.Config.CompressionLevel)
+	if c.Config.CompressionLevel != types.CompressionLevelBest {
+		t.Errorf("期望压缩级别为 %v, 实际为 %v", types.CompressionLevelBest, c.Config.CompressionLevel)
 	}
 }
 

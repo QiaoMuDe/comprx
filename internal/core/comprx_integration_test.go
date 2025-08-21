@@ -5,7 +5,7 @@ import (
 	"path/filepath"
 	"testing"
 
-	"gitee.com/MM-Q/comprx/config"
+	"gitee.com/MM-Q/comprx/types"
 )
 
 // TestPackUnpackIntegration 集成测试：压缩后解压验证
@@ -50,8 +50,8 @@ func TestPackUnpackIntegration(t *testing.T) {
 			}
 
 			// 验证压缩文件存在
-			if _, err := os.Stat(archivePath); os.IsNotExist(err) {
-				t.Fatal("压缩文件未创建")
+			if _, statErr := os.Stat(archivePath); os.IsNotExist(statErr) {
+				t.Fatalf("压缩文件未创建 %s", statErr)
 			}
 
 			// 解压到新目录
@@ -133,18 +133,18 @@ func TestCompressionLevels(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	levels := []config.CompressionLevel{
-		config.CompressionLevelNone,
-		config.CompressionLevelFast,
-		config.CompressionLevelDefault,
-		config.CompressionLevelBest,
+	levels := []types.CompressionLevel{
+		types.CompressionLevelNone,
+		types.CompressionLevelFast,
+		types.CompressionLevelDefault,
+		types.CompressionLevelBest,
 	}
 
-	levelNames := map[config.CompressionLevel]string{
-		config.CompressionLevelNone:    "None",
-		config.CompressionLevelFast:    "Fast",
-		config.CompressionLevelDefault: "Default",
-		config.CompressionLevelBest:    "Best",
+	levelNames := map[types.CompressionLevel]string{
+		types.CompressionLevelNone:    "None",
+		types.CompressionLevelFast:    "Fast",
+		types.CompressionLevelDefault: "Default",
+		types.CompressionLevelBest:    "Best",
 	}
 
 	for _, level := range levels {

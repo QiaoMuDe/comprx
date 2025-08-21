@@ -2,6 +2,8 @@ package comprx
 
 import (
 	"gitee.com/MM-Q/comprx/internal/core"
+	"gitee.com/MM-Q/comprx/internal/gzip"
+	"gitee.com/MM-Q/comprx/types"
 )
 
 // ==============================================
@@ -134,4 +136,72 @@ func UnpackOptions(src string, dst string, opts Options) error {
 		WithDisablePathValidation(opts.DisablePathValidation)
 
 	return comprx.Unpack(src, dst)
+}
+
+// ==================== 内存压缩API ====================
+
+// GzipBytes 压缩字节数据
+//
+// 参数:
+//   - data: 要压缩的字节数据
+//   - level: 压缩级别
+//
+// 返回:
+//   - []byte: 压缩后的数据
+//   - error: 错误信息
+//
+// 使用示例:
+//
+//	compressed, err := GzipBytes([]byte("hello world"), types.CompressionLevelDefault)
+func GzipBytes(data []byte, level types.CompressionLevel) ([]byte, error) {
+	return gzip.CompressBytes(data, level)
+}
+
+// UngzipBytes 解压字节数据
+//
+// 参数:
+//   - compressedData: 压缩的字节数据
+//
+// 返回:
+//   - []byte: 解压后的数据
+//   - error: 错误信息
+//
+// 使用示例:
+//
+//	decompressed, err := UngzipBytes(compressedData)
+func UngzipBytes(compressedData []byte) ([]byte, error) {
+	return gzip.DecompressBytes(compressedData)
+}
+
+// GzipString 压缩字符串
+//
+// 参数:
+//   - text: 要压缩的字符串
+//   - level: 压缩级别
+//
+// 返回:
+//   - []byte: 压缩后的数据
+//   - error: 错误信息
+//
+// 使用示例:
+//
+//	compressed, err := GzipString("hello world", types.CompressionLevelBest)
+func GzipString(text string, level types.CompressionLevel) ([]byte, error) {
+	return gzip.CompressString(text, level)
+}
+
+// UngzipString 解压为字符串
+//
+// 参数:
+//   - compressedData: 压缩的字节数据
+//
+// 返回:
+//   - string: 解压后的字符串
+//   - error: 错误信息
+//
+// 使用示例:
+//
+//	text, err := UngzipString(compressedData)
+func UngzipString(compressedData []byte) (string, error) {
+	return gzip.DecompressString(compressedData)
 }

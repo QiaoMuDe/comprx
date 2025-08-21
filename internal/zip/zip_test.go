@@ -10,6 +10,7 @@ import (
 
 	"gitee.com/MM-Q/comprx/config"
 	"gitee.com/MM-Q/comprx/internal/utils"
+	"gitee.com/MM-Q/comprx/types"
 )
 
 // 创建测试目录和文件的辅助函数
@@ -145,11 +146,11 @@ func TestZip_CompressionLevels(t *testing.T) {
 		t.Fatalf("创建测试文件失败: %v", err)
 	}
 
-	compressionLevels := []config.CompressionLevel{
-		config.CompressionLevelNone,
-		config.CompressionLevelFast,
-		config.CompressionLevelBest,
-		config.CompressionLevelDefault,
+	compressionLevels := []types.CompressionLevel{
+		types.CompressionLevelNone,
+		types.CompressionLevelFast,
+		types.CompressionLevelBest,
+		types.CompressionLevelDefault,
 	}
 
 	for _, level := range compressionLevels {

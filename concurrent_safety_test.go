@@ -459,8 +459,8 @@ func BenchmarkConcurrentPack(b *testing.B) {
 		b.Fatalf("创建临时目录失败: %v", err)
 	}
 	defer func() {
-		if err := os.RemoveAll(tempDir); err != nil {
-			b.Logf("清理临时目录失败: %v", err)
+		if rmErr := os.RemoveAll(tempDir); rmErr != nil {
+			b.Logf("清理临时目录失败: %v", rmErr)
 		}
 	}()
 

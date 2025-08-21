@@ -8,6 +8,7 @@ import (
 	"testing"
 
 	"gitee.com/MM-Q/comprx/config"
+	"gitee.com/MM-Q/comprx/types"
 )
 
 func TestTgz_SingleFile(t *testing.T) {
@@ -182,11 +183,11 @@ func TestTgz_CompressionLevels(t *testing.T) {
 		t.Fatalf("创建测试文件失败: %v", err)
 	}
 
-	levels := []config.CompressionLevel{
-		config.CompressionLevelNone,
-		config.CompressionLevelFast,
-		config.CompressionLevelDefault,
-		config.CompressionLevelBest,
+	levels := []types.CompressionLevel{
+		types.CompressionLevelNone,
+		types.CompressionLevelFast,
+		types.CompressionLevelDefault,
+		types.CompressionLevelBest,
 	}
 
 	for _, level := range levels {

@@ -100,14 +100,14 @@ func Ungzip(gzipFilePath string, targetPath string, config *config.Config) error
 	defer func() { _ = gzipReader.Close() }()
 
 	// 检查目标路径状态，处理目录情况和覆盖检查
-	if targetStat, err := os.Stat(targetPath); err == nil {
+	if targetStat, statErr := os.Stat(targetPath); statErr == nil {
 		if targetStat.IsDir() {
 			// 目标是目录，生成文件名
 			if gzipReader.Name != "" {
 				// 直接验证 GZIP 头部的文件名，并与目标目录合并
-				validatedPath, err := utils.ValidatePathSimple(targetPath, gzipReader.Name, config.DisablePathValidation)
-				if err != nil {
-					return fmt.Errorf("GZIP文件头包含不安全的文件名: %w", err)
+				validatedPath, validateErr := utils.ValidatePathSimple(targetPath, gzipReader.Name, config.DisablePathValidation)
+				if validateErr != nil {
+					return fmt.Errorf("GZIP文件头包含不安全的文件名: %w", validateErr)
 				}
 				targetPath = validatedPath
 			} else {
@@ -118,7 +118,7 @@ func Ungzip(gzipFilePath string, targetPath string, config *config.Config) error
 			}
 
 			// 重新检查生成的目标文件是否存在
-			if _, err := os.Stat(targetPath); err == nil && !config.OverwriteExisting {
+			if _, statErr := os.Stat(targetPath); statErr == nil && !config.OverwriteExisting {
 				return fmt.Errorf("目标文件已存在且不允许覆盖: %s", targetPath)
 			}
 		} else {
@@ -131,14 +131,14 @@ func Ungzip(gzipFilePath string, targetPath string, config *config.Config) error
 
 	// 检查目标文件的父目录是否存在，如果不存在则创建
 	parentDir := filepath.Dir(targetPath)
-	if err := utils.EnsureDir(parentDir); err != nil {
-		return fmt.Errorf("创建目标文件父目录失败: %w", err)
+	if mkdirErr := utils.EnsureDir(parentDir); mkdirErr != nil {
+		return fmt.Errorf("创建目标文件父目录失败: %w", mkdirErr)
 	}
 
 	// 创建目标文件
-	targetFile, err := os.Create(targetPath)
-	if err != nil {
-		return fmt.Errorf("创建目标文件失败: %w", err)
+	targetFile, createErr := os.Create(targetPath)
+	if createErr != nil {
+		return fmt.Errorf("创建目标文件失败: %w", createErr)
 	}
 	defer func() { _ = targetFile.Close() }()
 

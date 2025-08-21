@@ -1,17 +1,16 @@
 package comprx
 
 import (
-	"gitee.com/MM-Q/comprx/config"
 	"gitee.com/MM-Q/comprx/types"
 )
 
 // Options 压缩/解压配置选项
 type Options struct {
-	CompressionLevel      config.CompressionLevel // 压缩等级
-	OverwriteExisting     bool                    // 是否覆盖已存在的文件
-	ProgressEnabled       bool                    // 是否启用进度显示
-	ProgressStyle         types.ProgressStyle     // 进度条样式
-	DisablePathValidation bool                    // 是否禁用路径验证
+	CompressionLevel      types.CompressionLevel // 压缩等级
+	OverwriteExisting     bool                   // 是否覆盖已存在的文件
+	ProgressEnabled       bool                   // 是否启用进度显示
+	ProgressStyle         types.ProgressStyle    // 进度条样式
+	DisablePathValidation bool                   // 是否禁用路径验证
 }
 
 // DefaultOptions 返回默认配置选项
@@ -27,7 +26,7 @@ type Options struct {
 //   - DisablePathValidation: false (启用路径验证)
 func DefaultOptions() Options {
 	return Options{
-		CompressionLevel:      config.CompressionLevelDefault,
+		CompressionLevel:      types.CompressionLevelDefault,
 		OverwriteExisting:     false,
 		ProgressEnabled:       false,
 		ProgressStyle:         types.ProgressStyleText,
@@ -145,7 +144,7 @@ func ForceOptions() Options {
 //	err := PackOptions("output.zip", "input_dir", NoCompressionOptions())
 func NoCompressionOptions() Options {
 	opts := DefaultOptions()
-	opts.CompressionLevel = config.CompressionLevelNone
+	opts.CompressionLevel = types.CompressionLevelNone
 	opts.ProgressEnabled = true
 	opts.ProgressStyle = types.ProgressStyleText
 	return opts
@@ -169,7 +168,7 @@ func NoCompressionOptions() Options {
 //	err := PackOptions("output.zip", "input_dir", NoCompressionProgressOptions(types.ProgressStyleUnicode))
 func NoCompressionProgressOptions(style types.ProgressStyle) Options {
 	opts := DefaultOptions()
-	opts.CompressionLevel = config.CompressionLevelNone
+	opts.CompressionLevel = types.CompressionLevelNone
 	opts.ProgressEnabled = true
 	opts.ProgressStyle = style
 	return opts

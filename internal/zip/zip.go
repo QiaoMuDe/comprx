@@ -9,6 +9,7 @@ import (
 
 	"gitee.com/MM-Q/comprx/config"
 	"gitee.com/MM-Q/comprx/internal/utils"
+	"gitee.com/MM-Q/comprx/types"
 )
 
 // Zip 函数用于创建ZIP压缩文件
@@ -230,7 +231,7 @@ func processSpecialFile(zipWriter *zip.Writer, headerName string, mode fs.FileMo
 
 // getCompressionMethod 根据配置返回对应的压缩方法
 func getCompressionMethod(cfg *config.Config) uint16 {
-	if cfg.CompressionLevel == config.CompressionLevelNone {
+	if cfg.CompressionLevel == types.CompressionLevelNone {
 		return zip.Store // 不压缩，只存储
 	}
 

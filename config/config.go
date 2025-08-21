@@ -4,42 +4,24 @@ import (
 	"compress/gzip"
 
 	"gitee.com/MM-Q/comprx/internal/progress"
-)
-
-// CompressionLevel 压缩等级类型
-//
-// 支持的压缩等级：
-//   - CompressionLevelDefault: 默认压缩等级(zip仅支持该等级)
-//   - CompressionLevelNone: 不压缩(zip仅支持该等级)
-//   - CompressionLevelFast: 快速压缩
-//   - CompressionLevelBest: 最佳压缩
-//   - CompressionLevelHuffmanOnly: 仅使用Huffman编码
-type CompressionLevel int
-
-const (
-	// 压缩等级常量
-	CompressionLevelDefault     CompressionLevel = -1 // 默认压缩等级(zip仅支持该等级)
-	CompressionLevelNone        CompressionLevel = 0  // 不压缩(zip仅支持该等级)
-	CompressionLevelFast        CompressionLevel = 1  // 快速压缩
-	CompressionLevelBest        CompressionLevel = 9  // 最佳压缩
-	CompressionLevelHuffmanOnly CompressionLevel = -2 // 仅使用Huffman编码
+	"gitee.com/MM-Q/comprx/types"
 )
 
 // Config 压缩器配置
 type Config struct {
-	CompressionLevel      CompressionLevel   // 压缩等级
-	OverwriteExisting     bool               // 是否覆盖已存在的文件
-	Progress              *progress.Progress // 进度显示
-	DisablePathValidation bool               // 是否禁用路径验证
+	CompressionLevel      types.CompressionLevel // 压缩等级
+	OverwriteExisting     bool                   // 是否覆盖已存在的文件
+	Progress              *progress.Progress     // 进度显示
+	DisablePathValidation bool                   // 是否禁用路径验证
 }
 
 // New 创建新的压缩器配置
 func New() *Config {
 	return &Config{
-		CompressionLevel:      CompressionLevelDefault, // 默认压缩等级
-		OverwriteExisting:     false,                   // 默认不覆盖已存在文件
-		Progress:              progress.New(),          // 创建进度显示
-		DisablePathValidation: false,                   // 默认启用路径验证
+		CompressionLevel:      types.CompressionLevelDefault, // 默认压缩等级
+		OverwriteExisting:     false,                         // 默认不覆盖已存在文件
+		Progress:              progress.New(),                // 创建进度显示
+		DisablePathValidation: false,                         // 默认启用路径验证
 	}
 }
 
@@ -52,13 +34,13 @@ func New() *Config {
 //   - int - 压缩等级
 func GetCompressionLevel(cfg *Config) int {
 	switch cfg.CompressionLevel {
-	case CompressionLevelNone:
+	case types.CompressionLevelNone:
 		return gzip.NoCompression // 不进行压缩
-	case CompressionLevelFast:
+	case types.CompressionLevelFast:
 		return gzip.BestSpeed // 快速压缩
-	case CompressionLevelBest:
+	case types.CompressionLevelBest:
 		return gzip.BestCompression // 最佳压缩
-	case CompressionLevelHuffmanOnly:
+	case types.CompressionLevelHuffmanOnly:
 		return gzip.HuffmanOnly // 只使用哈夫曼编码
 	default:
 		return gzip.DefaultCompression // 默认的压缩等级

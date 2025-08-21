@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"gitee.com/MM-Q/comprx/config"
+	"gitee.com/MM-Q/comprx/types"
 )
 
 func TestGzip_Success(t *testing.T) {
@@ -25,7 +26,7 @@ func TestGzip_Success(t *testing.T) {
 	// 创建配置
 	cfg := config.New()
 	cfg.OverwriteExisting = true
-	cfg.CompressionLevel = config.CompressionLevelDefault
+	cfg.CompressionLevel = types.CompressionLevelDefault
 
 	// 执行压缩
 	err := Gzip(dstFile, srcFile, cfg)

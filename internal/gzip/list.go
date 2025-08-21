@@ -60,9 +60,9 @@ func ListGzip(archivePath string) (*types.ArchiveInfo, error) {
 	var originalSize int64
 	buffer := make([]byte, utils.DefaultBufferSize)
 	for {
-		n, err := gzipReader.Read(buffer)
-		if err != nil {
-			if err == io.EOF {
+		n, readErr := gzipReader.Read(buffer)
+		if readErr != nil {
+			if readErr == io.EOF {
 				break
 			}
 			// 如果读取失败，使用压缩文件大小作为估算

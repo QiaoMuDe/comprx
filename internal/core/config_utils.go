@@ -1,7 +1,6 @@
 package core
 
 import (
-	"gitee.com/MM-Q/comprx/config"
 	"gitee.com/MM-Q/comprx/types"
 )
 
@@ -63,7 +62,7 @@ func (c *Comprx) SetOverwriteExisting(overwrite bool) {
 //
 // 返回:
 //   - *Comprx: 压缩器实例
-func (c *Comprx) WithCompressionLevel(level config.CompressionLevel) *Comprx {
+func (c *Comprx) WithCompressionLevel(level types.CompressionLevel) *Comprx {
 	c.SetCompressionLevel(level)
 	return c
 }
@@ -72,7 +71,7 @@ func (c *Comprx) WithCompressionLevel(level config.CompressionLevel) *Comprx {
 //
 // 参数:
 //   - level: 压缩级别
-func (c *Comprx) SetCompressionLevel(level config.CompressionLevel) {
+func (c *Comprx) SetCompressionLevel(level types.CompressionLevel) {
 	c.Config.CompressionLevel = level
 }
 

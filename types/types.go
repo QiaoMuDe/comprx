@@ -146,3 +146,22 @@ func DetectCompressFormat(filename string) (CompressType, error) {
 
 	return CompressType(ext), nil
 }
+
+// CompressionLevel 压缩等级类型
+//
+// 支持的压缩等级：
+//   - CompressionLevelDefault: 默认压缩等级(zip仅支持该等级)
+//   - CompressionLevelNone: 不压缩(zip仅支持该等级)
+//   - CompressionLevelFast: 快速压缩
+//   - CompressionLevelBest: 最佳压缩
+//   - CompressionLevelHuffmanOnly: 仅使用Huffman编码
+type CompressionLevel int
+
+const (
+	// 压缩等级常量
+	CompressionLevelDefault     CompressionLevel = -1 // 默认压缩等级(zip仅支持该等级)
+	CompressionLevelNone        CompressionLevel = 0  // 不压缩(zip仅支持该等级)
+	CompressionLevelFast        CompressionLevel = 1  // 快速压缩
+	CompressionLevelBest        CompressionLevel = 9  // 最佳压缩
+	CompressionLevelHuffmanOnly CompressionLevel = -2 // 仅使用Huffman编码
+)
