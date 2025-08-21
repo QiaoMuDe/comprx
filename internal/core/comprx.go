@@ -136,14 +136,19 @@ func (c *Comprx) Unpack(src string, dst string) error {
 	switch compressType {
 	case types.CompressTypeZip: // Zip
 		return zip.Unzip(src, dst, c.Config)
+
 	case types.CompressTypeTar: // Tar
 		return tar.Untar(src, dst, c.Config)
-	case types.CompressTypeTgz: // TarGz
+
+	case types.CompressTypeTgz, types.CompressTypeTarGz: // Tgz, TarGz
 		return tgz.Untgz(src, dst, c.Config)
+
 	case types.CompressTypeGz: // Gzip
 		return gzip.Ungzip(src, dst, c.Config)
-	case types.CompressTypeBz2, types.CompressTypeBzip2: // Bz2
+
+	case types.CompressTypeBz2, types.CompressTypeBzip2: // Bz2, Bzip2
 		return bzip2.Unbz2(src, dst, c.Config)
+
 	default:
 		return fmt.Errorf("不支持的压缩格式: %s", compressType)
 	}
