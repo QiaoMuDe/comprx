@@ -320,22 +320,34 @@ func TestUnpackAutoGenerateTargetDir(t *testing.T) {
 
 	tempDir := t.TempDir()
 
-	// 创建一个简单的测试文件来模拟压缩文件
-	testFile := filepath.Join(tempDir, "test.tar.gz")
-	if err := os.WriteFile(testFile, []byte("fake archive"), 0644); err != nil {
+	// 创建一个真实的压缩文件来测试目标目录自动生成
+	srcFile := filepath.Join(tempDir, "source.txt")
+	if err := os.WriteFile(srcFile, []byte("test content for auto target dir"), 0644); err != nil {
 		t.Fatal(err)
 	}
 
-	// 调用Unpack，目标目录为空字符串
-	err := c.Unpack(testFile, "")
-	// 这里会因为文件格式检测失败而返回错误，但我们主要测试目标目录生成逻辑
+	// 先创建一个真实的压缩文件
+	testArchive := filepath.Join(tempDir, "test.tar.gz")
+	if err := c.Pack(testArchive, srcFile); err != nil {
+		t.Fatal(err)
+	}
+
+	// 调用Unpack，目标目录为空字符串，应该自动生成目标目录
+	err := c.Unpack(testArchive, "")
 	if err != nil {
-		// 检查错误是否与格式检测相关，而不是目录生成相关
-		if !contains(err.Error(), "检测压缩格式失败") &&
-			!contains(err.Error(), "不支持的压缩文件格式") &&
-			!contains(err.Error(), "不支持的压缩格式") {
-			t.Errorf("意外的错误: %v", err)
-		}
+		t.Errorf("解压时不应该返回错误，但得到: %v", err)
+	}
+
+	// 检查自动生成的目标目录是否存在
+	expectedTargetDir := filepath.Join(tempDir, "test")
+	if _, err := os.Stat(expectedTargetDir); os.IsNotExist(err) {
+		t.Errorf("自动生成的目标目录 %s 不存在", expectedTargetDir)
+	}
+
+	// 检查解压的文件是否存在
+	extractedFile := filepath.Join(expectedTargetDir, "source.txt")
+	if _, err := os.Stat(extractedFile); os.IsNotExist(err) {
+		t.Errorf("解压的文件 %s 不存在", extractedFile)
 	}
 }
 
