@@ -260,6 +260,7 @@ func (s *Progress) newProgressBar(total int64, description string) *progressbar.
 		progressbar.OptionShowCount(),                 // 显示当前进度的总和
 		//progressbar.OptionShowElapsedTimeOnFinish(),        // 完成后显示已用时间
 		progressbar.OptionSetTheme(theme), // 设置进度条主题样式
+		progressbar.OptionFullWidth(),     // 设置进度条全宽显示
 	)
 }
 
