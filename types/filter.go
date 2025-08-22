@@ -55,9 +55,9 @@ func (f *FilterOptions) ShouldInclude(path string, info os.FileInfo) bool {
 	}
 
 	// 检查是否有任何过滤条件
-	hasFilter := len(f.Include) > 0 || 
-		len(f.Exclude) > 0 || 
-		f.MinSize > 0 || 
+	hasFilter := len(f.Include) > 0 ||
+		len(f.Exclude) > 0 ||
+		f.MinSize > 0 ||
 		f.MaxSize > 0
 
 	// 如果没有过滤条件，包含所有文件
@@ -186,11 +186,11 @@ func (f *FilterOptions) Validate() error {
 	if f.MinSize < 0 {
 		return fmt.Errorf("最小文件大小不能为负数: %d", f.MinSize)
 	}
-	
+
 	if f.MaxSize < 0 {
 		return fmt.Errorf("最大文件大小不能为负数: %d", f.MaxSize)
 	}
-	
+
 	if f.MinSize > 0 && f.MaxSize > 0 && f.MinSize > f.MaxSize {
 		return fmt.Errorf("最小文件大小 (%d) 不能大于最大文件大小 (%d)", f.MinSize, f.MaxSize)
 	}
@@ -223,10 +223,10 @@ func HasFilterConditions(filter *FilterOptions) bool {
 	if filter == nil {
 		return false
 	}
-	
-	return len(filter.Include) > 0 || 
-		len(filter.Exclude) > 0 || 
-		filter.MinSize > 0 || 
+
+	return len(filter.Include) > 0 ||
+		len(filter.Exclude) > 0 ||
+		filter.MinSize > 0 ||
 		filter.MaxSize > 0
 }
 
@@ -243,7 +243,7 @@ func LoadExcludeFromFile(ignoreFilePath string) ([]string, error) {
 	if err != nil {
 		return nil, err
 	}
-	
+
 	return parseIgnoreFileContent(string(content)), nil
 }
 
@@ -271,21 +271,21 @@ func LoadExcludeFromFileOrEmpty(ignoreFilePath string) []string {
 //   - []string: 排除模式列表
 func parseIgnoreFileContent(content string) []string {
 	var patterns []string
-	
+
 	// 按行分割
 	lines := filepath.SplitList(content)
-	
+
 	for _, line := range lines {
 		// 去除空白
 		line = filepath.Clean(line)
-		
+
 		// 跳过空行和注释
 		if line == "" || line[0] == '#' {
 			continue
 		}
-		
+
 		patterns = append(patterns, line)
 	}
-	
+
 	return patterns
 }

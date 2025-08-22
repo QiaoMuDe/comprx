@@ -280,11 +280,13 @@ func TestConcurrentInstanceIsolation(t *testing.T) {
 			// 创建不同配置的实例
 			comprx := core.New()
 			if id%2 == 0 {
-				comprx.WithProgressAndStyle(true, types.ProgressStyleText)
-				comprx.WithOverwriteExisting(true)
+				comprx.Config.Progress.Enabled = true
+				comprx.Config.Progress.BarStyle = types.ProgressStyleText
+				comprx.Config.OverwriteExisting = true
 			} else {
-				comprx.WithProgressAndStyle(false, types.ProgressStyleASCII)
-				comprx.WithOverwriteExisting(false)
+				comprx.Config.Progress.Enabled = false
+				comprx.Config.Progress.BarStyle = types.ProgressStyleASCII
+				comprx.Config.OverwriteExisting = false
 			}
 
 			dstFile := filepath.Join(tempDir, fmt.Sprintf("isolation_test_%d.zip", id))
@@ -352,10 +354,13 @@ func TestRaceConditionDetection(t *testing.T) {
 			case 1:
 				_ = PackProgress(dstFile, srcFile)
 			case 2:
-				comprx := core.New().WithProgressAndStyle(true, types.ProgressStyleUnicode)
+				comprx := core.New()
+				comprx.Config.Progress.Enabled = true
+				comprx.Config.Progress.BarStyle = types.ProgressStyleUnicode
 				_ = comprx.Pack(dstFile, srcFile)
 			case 3:
-				comprx := core.New().WithOverwriteExisting(true)
+				comprx := core.New()
+				comprx.Config.OverwriteExisting = true
 				_ = comprx.Pack(dstFile, srcFile)
 			}
 		}(i)

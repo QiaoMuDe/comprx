@@ -35,7 +35,8 @@ func TestPackUnpackIntegration(t *testing.T) {
 		}
 	}
 
-	c := New().WithOverwriteExisting(true)
+	c := New()
+	c.Config.OverwriteExisting = true
 
 	// 测试不同压缩格式的完整流程
 	formats := []string{"zip", "tar", "tgz"}
@@ -88,7 +89,8 @@ func TestSingleFilePackUnpack(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	c := New().WithOverwriteExisting(true)
+	c := New()
+	c.Config.OverwriteExisting = true
 
 	// 测试 gzip 格式（专门用于单文件）
 	t.Run("gzip", func(t *testing.T) {
@@ -150,9 +152,9 @@ func TestCompressionLevels(t *testing.T) {
 	for _, level := range levels {
 		levelName := levelNames[level]
 		t.Run(levelName, func(t *testing.T) {
-			c := New().
-				WithOverwriteExisting(true).
-				WithCompressionLevel(level)
+			c := New()
+			c.Config.OverwriteExisting = true
+			c.Config.CompressionLevel = level
 
 			zipFile := filepath.Join(tempDir, "test_"+levelName+".zip")
 			err := c.Pack(zipFile, srcFile)
@@ -227,7 +229,8 @@ func TestConcurrentAccess(t *testing.T) {
 
 	for i := 0; i < numGoroutines; i++ {
 		go func(id int) {
-			c := New().WithOverwriteExisting(true)
+			c := New()
+			c.Config.OverwriteExisting = true
 			zipFile := filepath.Join(tempDir, "concurrent_"+string(rune('0'+id))+".zip")
 			done <- c.Pack(zipFile, srcFile)
 		}(i)
@@ -259,7 +262,8 @@ func TestLargeFile(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	c := New().WithOverwriteExisting(true)
+	c := New()
+	c.Config.OverwriteExisting = true
 
 	// 测试压缩大文件
 	zipFile := filepath.Join(tempDir, "large.zip")
@@ -315,7 +319,8 @@ func TestEmptyFiles(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	c := New().WithOverwriteExisting(true)
+	c := New()
+	c.Config.OverwriteExisting = true
 
 	// 测试压缩空文件
 	zipFile := filepath.Join(tempDir, "empty.zip")

@@ -36,7 +36,7 @@ func LoadExcludeFromFile(ignoreFilePath string) ([]string, error) {
 		}
 		return nil, fmt.Errorf("打开忽略文件失败: %w", err)
 	}
-	defer file.Close()
+	defer func() { _ = file.Close() }()
 
 	var patterns []string
 	scanner := bufio.NewScanner(file)

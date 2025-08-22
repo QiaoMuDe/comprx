@@ -69,47 +69,23 @@ func TestNewComprx(t *testing.T) {
 	}
 }
 
-// TestWithOverwriteExisting 测试链式设置覆盖选项
-func TestWithOverwriteExisting(t *testing.T) {
+// TestDirectConfigAccess 测试直接配置访问
+func TestDirectConfigAccess(t *testing.T) {
 	c := New()
 
-	// 测试设置为 true
-	result := c.WithOverwriteExisting(true)
-	if result != c {
-		t.Error("WithOverwriteExisting 应该返回同一个实例")
-	}
+	// 测试设置覆盖选项为 true
+	c.Config.OverwriteExisting = true
 	if !c.Config.OverwriteExisting {
 		t.Error("OverwriteExisting 应该被设置为 true")
 	}
 
-	// 测试设置为 false
-	c.WithOverwriteExisting(false)
+	// 测试设置覆盖选项为 false
+	c.Config.OverwriteExisting = false
 	if c.Config.OverwriteExisting {
 		t.Error("OverwriteExisting 应该被设置为 false")
 	}
-}
 
-// TestSetOverwriteExisting 测试设置覆盖选项
-func TestSetOverwriteExisting(t *testing.T) {
-	c := New()
-
-	// 测试设置为 true
-	c.SetOverwriteExisting(true)
-	if !c.Config.OverwriteExisting {
-		t.Error("OverwriteExisting 应该被设置为 true")
-	}
-
-	// 测试设置为 false
-	c.SetOverwriteExisting(false)
-	if c.Config.OverwriteExisting {
-		t.Error("OverwriteExisting 应该被设置为 false")
-	}
-}
-
-// TestWithCompressionLevel 测试链式设置压缩级别
-func TestWithCompressionLevel(t *testing.T) {
-	c := New()
-
+	// 测试设置压缩级别
 	testCases := []types.CompressionLevel{
 		types.CompressionLevelNone,
 		types.CompressionLevelFast,
@@ -118,29 +94,7 @@ func TestWithCompressionLevel(t *testing.T) {
 	}
 
 	for _, level := range testCases {
-		result := c.WithCompressionLevel(level)
-		if result != c {
-			t.Error("WithCompressionLevel 应该返回同一个实例")
-		}
-		if c.Config.CompressionLevel != level {
-			t.Errorf("期望压缩级别为 %v, 实际为 %v", level, c.Config.CompressionLevel)
-		}
-	}
-}
-
-// TestSetCompressionLevel 测试设置压缩级别
-func TestSetCompressionLevel(t *testing.T) {
-	c := New()
-
-	testCases := []types.CompressionLevel{
-		types.CompressionLevelNone,
-		types.CompressionLevelFast,
-		types.CompressionLevelBest,
-		types.CompressionLevelHuffmanOnly,
-	}
-
-	for _, level := range testCases {
-		c.SetCompressionLevel(level)
+		c.Config.CompressionLevel = level
 		if c.Config.CompressionLevel != level {
 			t.Errorf("期望压缩级别为 %v, 实际为 %v", level, c.Config.CompressionLevel)
 		}
@@ -265,7 +219,8 @@ func TestPackOverwriteExisting(t *testing.T) {
 	}
 
 	// 测试不允许覆盖
-	c1 := New().WithOverwriteExisting(false)
+	c1 := New()
+	c1.Config.OverwriteExisting = false
 	err := c1.Pack(dstFile, srcFile)
 	if err == nil {
 		t.Error("期望返回错误，但没有错误")
@@ -276,7 +231,8 @@ func TestPackOverwriteExisting(t *testing.T) {
 	}
 
 	// 测试允许覆盖
-	c2 := New().WithOverwriteExisting(true)
+	c2 := New()
+	c2.Config.OverwriteExisting = true
 	err = c2.Pack(dstFile, srcFile)
 	if err != nil {
 		t.Errorf("不期望返回错误，但得到错误: %v", err)
@@ -353,9 +309,9 @@ func TestUnpackAutoGenerateTargetDir(t *testing.T) {
 
 // TestChainedConfiguration 测试链式配置
 func TestChainedConfiguration(t *testing.T) {
-	c := New().
-		WithOverwriteExisting(true).
-		WithCompressionLevel(types.CompressionLevelBest)
+	c := New()
+	c.Config.OverwriteExisting = true
+	c.Config.CompressionLevel = types.CompressionLevelBest
 
 	if !c.Config.OverwriteExisting {
 		t.Error("OverwriteExisting 应该为 true")
@@ -375,7 +331,8 @@ func TestPackSupportedFormats(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	c := New().WithOverwriteExisting(true)
+	c := New()
+	c.Config.OverwriteExisting = true
 
 	supportedFormats := []string{
 		"test.zip",
@@ -460,7 +417,8 @@ func BenchmarkPack(b *testing.B) {
 		b.Fatal(err)
 	}
 
-	c := New().WithOverwriteExisting(true)
+	c := New()
+	c.Config.OverwriteExisting = true
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {

@@ -142,9 +142,9 @@ func TestInstanceIsolation(t *testing.T) {
 			// 创建独立的实例并设置不同配置
 			comprx := core.New()
 			if id%2 == 0 {
-				comprx.WithOverwriteExisting(true)
+				comprx.Config.OverwriteExisting = true
 			} else {
-				comprx.WithOverwriteExisting(false)
+				comprx.Config.OverwriteExisting = false
 			}
 
 			zipFile := filepath.Join(tempDir, fmt.Sprintf("isolation_%d.zip", id))
