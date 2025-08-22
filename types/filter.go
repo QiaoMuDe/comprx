@@ -4,38 +4,39 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 )
 
 // FileFilter 文件过滤器接口
 //
-// 用于判断文件是否应该被包含在压缩/解压操作中
+// 用于判断文件是否应该被跳过（不处理）
 type FileFilter interface {
-	// ShouldInclude 判断文件是否应该被包含
+	// ShouldSkip 判断文件是否应该被跳过
 	//
 	// 参数:
 	//   - path: 文件路径
 	//   - info: 文件信息
 	//
 	// 返回:
-	//   - bool: true 表示应该包含，false 表示应该排除
-	ShouldInclude(path string, info os.FileInfo) bool
+	//   - bool: true 表示应该跳过，false 表示应该处理
+	ShouldSkip(path string, info os.FileInfo) bool
 }
 
 // FilterOptions 过滤配置选项
 //
 // 用于指定压缩时的文件过滤条件：
-//   - Include: 包含模式列表，支持 glob 语法
-//   - Exclude: 排除模式列表，支持 glob 语法
-//   - MaxSize: 最大文件大小限制（字节），0 表示无限制
-//   - MinSize: 最小文件大小限制（字节），默认为 0
+//   - Include: 包含模式列表，支持 glob 语法，只有匹配的文件才会被处理
+//   - Exclude: 排除模式列表，支持 glob 语法，匹配的文件会被跳过
+//   - MaxSize: 最大文件大小限制（字节），0 表示无限制，超过此大小的文件会被跳过
+//   - MinSize: 最小文件大小限制（字节），默认为 0，小于此大小的文件会被跳过
 type FilterOptions struct {
-	Include []string // 包含模式，支持 glob 语法
-	Exclude []string // 排除模式，支持 glob 语法
+	Include []string // 包含模式，支持 glob 语法，只处理匹配的文件
+	Exclude []string // 排除模式，支持 glob 语法，跳过匹配的文件
 	MaxSize int64    // 最大文件大小（字节），0 表示无限制
 	MinSize int64    // 最小文件大小（字节），默认为 0
 }
 
-// ShouldInclude 判断文件是否应该被包含
+// ShouldSkip 判断文件是否应该被跳过
 //
 // 过滤逻辑:
 //  1. 检查文件大小是否符合要求
@@ -47,11 +48,11 @@ type FilterOptions struct {
 //   - info: 文件信息
 //
 // 返回:
-//   - bool: true 表示应该包含，false 表示应该排除
-func (f *FilterOptions) ShouldInclude(path string, info os.FileInfo) bool {
-	// 如果过滤器为空，包含所有文件
+//   - bool: true 表示应该跳过，false 表示应该处理
+func (f *FilterOptions) ShouldSkip(path string, info os.FileInfo) bool {
+	// 如果过滤器为空，不跳过任何文件
 	if f == nil {
-		return true
+		return false
 	}
 
 	// 检查是否有任何过滤条件
@@ -60,31 +61,34 @@ func (f *FilterOptions) ShouldInclude(path string, info os.FileInfo) bool {
 		f.MinSize > 0 ||
 		f.MaxSize > 0
 
-	// 如果没有过滤条件，包含所有文件
+	// 如果没有过滤条件，不跳过任何文件
 	if !hasFilter {
-		return true
-	}
-
-	// 1. 检查文件大小
-	if !f.checkSizeFilter(info) {
 		return false
 	}
 
+	// 1. 检查文件大小 - 不符合大小要求的文件应该被跳过
+	if !f.checkSizeFilter(info) {
+		return true
+	}
+
 	// 2. 检查包含模式（如果指定了包含模式）
+	// 不匹配包含模式的文件应该被跳过
 	if len(f.Include) > 0 {
 		if !f.matchAnyPattern(f.Include, path) {
-			return false
+			return true
 		}
 	}
 
 	// 3. 检查排除模式
+	// 匹配排除模式的文件应该被跳过
 	if len(f.Exclude) > 0 {
 		if f.matchAnyPattern(f.Exclude, path) {
-			return false
+			return true
 		}
 	}
 
-	return true
+	// 通过所有检查，不应该被跳过
+	return false
 }
 
 // checkSizeFilter 检查文件大小是否符合过滤条件
@@ -93,20 +97,20 @@ func (f *FilterOptions) ShouldInclude(path string, info os.FileInfo) bool {
 //   - info: 文件信息
 //
 // 返回:
-//   - bool: true 表示通过大小过滤，false 表示不通过
+//   - bool: true 表示符合大小要求，false 表示不符合大小要求
 func (f *FilterOptions) checkSizeFilter(info os.FileInfo) bool {
 	if info.IsDir() {
-		return true // 目录总是通过大小过滤
+		return true // 目录总是符合大小要求
 	}
 
 	size := info.Size()
 
-	// 检查最小大小
+	// 检查最小大小 - 文件太小不符合要求
 	if f.MinSize > 0 && size < f.MinSize {
 		return false
 	}
 
-	// 检查最大大小
+	// 检查最大大小 - 文件太大不符合要求
 	if f.MaxSize > 0 && size > f.MaxSize {
 		return false
 	}
@@ -167,7 +171,7 @@ func (f *FilterOptions) matchPattern(pattern, path string) bool {
 	}
 
 	// 4. 处理路径中包含模式的情况
-	pathParts := filepath.SplitList(filepath.ToSlash(path))
+	pathParts := strings.Split(filepath.ToSlash(path), "/")
 	for _, part := range pathParts {
 		if matched, err := filepath.Match(pattern, part); err == nil && matched {
 			return true
@@ -273,14 +277,14 @@ func parseIgnoreFileContent(content string) []string {
 	var patterns []string
 
 	// 按行分割
-	lines := filepath.SplitList(content)
+	lines := strings.Split(content, "\n")
 
 	for _, line := range lines {
 		// 去除空白
-		line = filepath.Clean(line)
+		line = strings.TrimSpace(line)
 
 		// 跳过空行和注释
-		if line == "" || line[0] == '#' {
+		if line == "" || strings.HasPrefix(line, "#") {
 			continue
 		}
 
