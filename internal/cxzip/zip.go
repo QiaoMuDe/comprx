@@ -8,6 +8,7 @@ import (
 	"path/filepath"
 
 	"gitee.com/MM-Q/comprx/config"
+	"gitee.com/MM-Q/comprx/internal/progress"
 	"gitee.com/MM-Q/comprx/internal/utils"
 	"gitee.com/MM-Q/comprx/types"
 )
@@ -45,7 +46,7 @@ func Zip(dst string, src string, cfg *config.Config) error {
 	}
 
 	// 在进度条模式下计算源文件总大小
-	totalSize := utils.CalculateSourceTotalSizeWithProgress(src, cfg, "正在分析内容...")
+	totalSize := progress.CalculateSourceTotalSizeWithProgress(src, cfg.Progress, "正在分析内容...")
 
 	// 开始进度显示
 	if err := cfg.Progress.Start(totalSize, dst, fmt.Sprintf("正在压缩 %s...", filepath.Base(dst))); err != nil {

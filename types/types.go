@@ -165,3 +165,41 @@ const (
 	CompressionLevelBest        CompressionLevel = 9  // 最佳压缩
 	CompressionLevelHuffmanOnly CompressionLevel = -2 // 仅使用Huffman编码
 )
+
+// IsValid 检查压缩等级是否有效
+// 有效范围：-2 到 9
+func (cl CompressionLevel) IsValid() bool {
+	return cl >= CompressionLevelHuffmanOnly && cl <= CompressionLevelBest
+}
+
+// String 返回压缩等级的字符串表示
+func (cl CompressionLevel) String() string {
+	switch cl {
+	case CompressionLevelHuffmanOnly:
+		return "huffman-only"
+	case CompressionLevelDefault:
+		return "default"
+	case CompressionLevelNone:
+		return "none"
+	case CompressionLevelFast:
+		return "fast"
+	case CompressionLevelBest:
+		return "best"
+	default:
+		if cl >= 0 && cl <= 9 {
+			return fmt.Sprintf("level-%d", int(cl))
+		}
+		return fmt.Sprintf("invalid-%d", int(cl))
+	}
+}
+
+// SupportedCompressionLevels 返回所有预定义的压缩等级
+func SupportedCompressionLevels() []CompressionLevel {
+	return []CompressionLevel{
+		CompressionLevelHuffmanOnly,
+		CompressionLevelDefault,
+		CompressionLevelNone,
+		CompressionLevelFast,
+		CompressionLevelBest,
+	}
+}

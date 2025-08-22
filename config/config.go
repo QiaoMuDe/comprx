@@ -13,6 +13,7 @@ type Config struct {
 	OverwriteExisting     bool                   // 是否覆盖已存在的文件
 	Progress              *progress.Progress     // 进度显示
 	DisablePathValidation bool                   // 是否禁用路径验证
+	Filter                *types.FilterOptions   // 文件过滤配置
 }
 
 // New 创建新的压缩器配置
@@ -22,6 +23,7 @@ func New() *Config {
 		OverwriteExisting:     false,                         // 默认不覆盖已存在文件
 		Progress:              progress.New(),                // 创建进度显示
 		DisablePathValidation: false,                         // 默认启用路径验证
+		Filter:                nil,                           // 初始化空过滤器(不启用过滤时为nil)
 	}
 }
 

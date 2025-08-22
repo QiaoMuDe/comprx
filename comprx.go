@@ -1,6 +1,7 @@
 package comprx
 
 import (
+	"fmt"
 	"io"
 
 	"gitee.com/MM-Q/comprx/internal/core"
@@ -104,11 +105,32 @@ func UnpackProgress(src string, dst string) error {
 //	}
 //	err := PackOptions("output.zip", "input_dir", opts)
 func PackOptions(dst string, src string, opts Options) error {
-	comprx := core.New().
-		WithCompressionLevel(opts.CompressionLevel).
-		WithOverwriteExisting(opts.OverwriteExisting).
-		WithProgressAndStyle(opts.ProgressEnabled, opts.ProgressStyle).
-		WithDisablePathValidation(opts.DisablePathValidation)
+	comprx := core.New()
+
+	// 验证压缩等级
+	if !opts.CompressionLevel.IsValid() {
+		return fmt.Errorf("无效的压缩等级: %s，有效范围: -2 到 9", opts.CompressionLevel.String())
+	}
+	comprx.Config.CompressionLevel = opts.CompressionLevel
+	comprx.Config.OverwriteExisting = opts.OverwriteExisting
+	comprx.Config.Progress.Enabled = opts.ProgressEnabled
+	// 验证进度条样式
+	if !opts.ProgressStyle.IsValid() {
+		return fmt.Errorf("invalid progress style: %v", opts.ProgressStyle)
+	}
+	comprx.Config.Progress.BarStyle = opts.ProgressStyle
+	comprx.Config.DisablePathValidation = opts.DisablePathValidation
+
+	// 验证过滤器选项
+	if err := opts.Filter.Validate(); err != nil {
+		return err
+	}
+	comprx.Config.Filter = &types.FilterOptions{
+		Include: opts.Filter.Include,
+		Exclude: opts.Filter.Exclude,
+		MaxSize: opts.Filter.MaxSize,
+		MinSize: opts.Filter.MinSize,
+	}
 
 	return comprx.Pack(dst, src)
 }
@@ -132,10 +154,28 @@ func PackOptions(dst string, src string, opts Options) error {
 //	}
 //	err := UnpackOptions("archive.zip", "output_dir", opts)
 func UnpackOptions(src string, dst string, opts Options) error {
-	comprx := core.New().
-		WithOverwriteExisting(opts.OverwriteExisting).
-		WithProgressAndStyle(opts.ProgressEnabled, opts.ProgressStyle).
-		WithDisablePathValidation(opts.DisablePathValidation)
+	comprx := core.New()
+
+	// 设置配置（解压时不需要验证压缩等级）
+	comprx.Config.OverwriteExisting = opts.OverwriteExisting
+	comprx.Config.Progress.Enabled = opts.ProgressEnabled
+	// 验证进度条样式
+	if !opts.ProgressStyle.IsValid() {
+		return fmt.Errorf("invalid progress style: %v", opts.ProgressStyle)
+	}
+	comprx.Config.Progress.BarStyle = opts.ProgressStyle
+	comprx.Config.DisablePathValidation = opts.DisablePathValidation
+
+	// 验证并设置过滤器
+	if err := opts.Filter.Validate(); err != nil {
+		return err
+	}
+	comprx.Config.Filter = &types.FilterOptions{
+		Include: opts.Filter.Include,
+		Exclude: opts.Filter.Exclude,
+		MaxSize: opts.Filter.MaxSize,
+		MinSize: opts.Filter.MinSize,
+	}
 
 	return comprx.Unpack(src, dst)
 }
