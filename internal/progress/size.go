@@ -14,6 +14,7 @@ import (
 //   - srcPath: 源路径（文件或目录）
 //   - progress: 进度显示对象
 //   - scanMessage: 扫描时显示的消息，如 "正在分析内容..."
+//   - filter: 文件过滤器，用于跳过不需要的文件
 //
 // 返回值:
 //   - int64: 普通文件的总大小（字节）
@@ -23,7 +24,8 @@ import (
 //   - 显示扫描进度条并实时更新
 //   - 支持单个文件和目录的大小计算
 //   - 只计算普通文件，忽略目录、符号链接等特殊文件
-func CalculateSourceTotalSizeWithProgress(srcPath string, progress *Progress, scanMessage string) int64 {
+//   - 应用过滤器跳过不需要处理的文件
+func CalculateSourceTotalSizeWithProgress(srcPath string, progress *Progress, scanMessage string, filter *types.FilterOptions) int64 {
 	// 只在进度条模式下计算总大小
 	if !progress.Enabled || progress.BarStyle == types.ProgressStyleText {
 		return 0
@@ -43,29 +45,51 @@ func CalculateSourceTotalSizeWithProgress(srcPath string, progress *Progress, sc
 		return 0
 	}
 
+	// 单个文件处理
 	if info.Mode().IsRegular() {
-		// 单个文件
+		// 检查是否应该跳过
+		if filter != nil && filter.ShouldSkipByParams(srcPath, info.Size(), false) {
+			return 0 // 文件被过滤器跳过
+		}
 		totalSize = info.Size()
 		_ = bar.Add64(totalSize)
-	} else if info.IsDir() {
-		// 目录，需要遍历所有文件
+		return totalSize
+	}
+
+	// 目录处理
+	if info.IsDir() {
+		// 遍历目录下所有文件处理
 		_ = filepath.WalkDir(srcPath, func(path string, entry fs.DirEntry, err error) error {
 			if err != nil {
 				return nil // 忽略错误，继续遍历
 			}
 
+			// 获取文件信息用于过滤检查
+			fileInfo, err := entry.Info()
+			if err != nil {
+				return nil // 忽略错误，继续遍历
+			}
+
+			// 应用过滤器检查
+			if filter != nil && filter.ShouldSkipByParams(path, fileInfo.Size(), fileInfo.IsDir()) {
+				if fileInfo.IsDir() {
+					return filepath.SkipDir // 跳过整个目录
+				}
+				return nil // 跳过文件
+			}
+
 			// 只计算普通文件的大小
 			if entry.Type().IsRegular() {
-				if fileInfo, err := entry.Info(); err == nil {
-					fileSize := fileInfo.Size()
-					totalSize += fileSize
-					_ = bar.Add64(fileSize) // 实时更新进度条
-				}
+				fileSize := fileInfo.Size()
+				totalSize += fileSize   // 累加文件大小
+				_ = bar.Add64(fileSize) // 实时更新进度条
 			}
 
 			return nil
 		})
+		return totalSize
 	}
 
-	return totalSize
+	// 其他类型文件（符号链接、设备文件等）不计算大小
+	return 0
 }

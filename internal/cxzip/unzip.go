@@ -47,6 +47,14 @@ func Unzip(zipFilePath string, targetDir string, cfg *config.Config) error {
 
 	// 遍历 ZIP 文件中的每个文件或目录
 	for _, file := range zipReader.File {
+		// 应用过滤器检查
+		if cfg.Filter != nil {
+			// 使用通用的过滤方法，传入文件路径、大小和是否为目录
+			if cfg.Filter.ShouldSkipByParams(file.Name, int64(file.UncompressedSize64), file.Mode().IsDir()) {
+				continue // 跳过此文件
+			}
+		}
+
 		// 安全的路径验证和拼接
 		targetPath, err := utils.ValidatePathSimple(targetDir, file.Name, cfg.DisablePathValidation)
 		if err != nil {
@@ -108,6 +116,13 @@ func calculateZipTotalSize(zipReader *zip.ReadCloser, cfg *config.Config) int64 
 
 	// 遍历ZIP文件中的所有条目
 	for _, file := range zipReader.File {
+		// 应用过滤器检查
+		if cfg.Filter != nil {
+			if cfg.Filter.ShouldSkipByParams(file.Name, int64(file.UncompressedSize64), file.Mode().IsDir()) {
+				continue // 跳过被过滤的文件
+			}
+		}
+
 		// 只计算普通文件的大小，跳过目录和软链接
 		if file.Mode().IsRegular() {
 			totalSize += int64(file.UncompressedSize64)   // 累加普通文件大小

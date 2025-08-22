@@ -66,6 +66,15 @@ func Untgz(tgzFilePath string, targetDir string, cfg *config.Config) error {
 			return fmt.Errorf("读取 TAR 文件头失败: %w", err)
 		}
 
+		// 检查是否应该跳过此文件
+		if cfg.Filter != nil {
+			// 应用过滤器检查
+			isDir := header.Typeflag == tar.TypeDir
+			if cfg.Filter.ShouldSkipByParams(header.Name, header.Size, isDir) {
+				continue // 跳过此文件
+			}
+		}
+
 		// 安全的路径验证和拼接
 		targetPath, err := utils.ValidatePathSimple(targetDir, header.Name, cfg.DisablePathValidation)
 		if err != nil {
@@ -154,6 +163,15 @@ func calculateTgzTotalSize(tgzFilePath string, cfg *config.Config) int64 {
 		}
 		if err != nil {
 			break // 出错时停止扫描
+		}
+
+		// 检查是否应该跳过此文件
+		if cfg.Filter != nil {
+			// 应用过滤器检查
+			isDir := header.Typeflag == tar.TypeDir
+			if cfg.Filter.ShouldSkipByParams(header.Name, header.Size, isDir) {
+				continue
+			}
 		}
 
 		// 只计算普通文件的大小

@@ -52,7 +52,7 @@ func Tgz(dst string, src string, cfg *config.Config) error {
 	}
 
 	// 在进度条模式下计算源文件总大小
-	totalSize := progress.CalculateSourceTotalSizeWithProgress(src, cfg.Progress, "正在分析内容...")
+	totalSize := progress.CalculateSourceTotalSizeWithProgress(src, cfg.Progress, "正在分析内容...", cfg.Filter)
 
 	// 开始进度显示
 	if err := cfg.Progress.Start(totalSize, dst, fmt.Sprintf("正在压缩 %s...", filepath.Base(dst))); err != nil {
@@ -86,7 +86,11 @@ func Tgz(dst string, src string, cfg *config.Config) error {
 		// 遍历目录并添加文件到 TGZ 包
 		tgzErr = walkDirectoryForTgz(src, tarWriter, cfg)
 	} else {
-		// 单文件处理逻辑
+		// 单文件处理逻辑 - 检查是否应该跳过
+		if cfg.Filter != nil && cfg.Filter.ShouldSkipByParams(src, srcInfo.Size(), srcInfo.IsDir()) {
+			// 文件被过滤器跳过，直接返回成功
+			return nil
+		}
 		cfg.Progress.Adding(src) // 添加文件到进度条
 		tgzErr = processRegularFile(tarWriter, src, filepath.Base(src), srcInfo, cfg)
 	}
@@ -246,6 +250,20 @@ func walkDirectoryForTgz(src string, tarWriter *tar.Writer, cfg *config.Config) 
 			return fmt.Errorf("遍历路径 '%s' 时出错: %w", path, err)
 		}
 
+		// 获取文件信息用于过滤检查
+		info, err := entry.Info()
+		if err != nil {
+			return fmt.Errorf("处理路径 '%s' 时出错 - 获取文件信息失败: %w", path, err)
+		}
+
+		// 应用过滤器检查
+		if cfg.Filter != nil && cfg.Filter.ShouldSkipByParams(path, info.Size(), info.IsDir()) {
+			if info.IsDir() {
+				return filepath.SkipDir // 跳过整个目录
+			}
+			return nil // 跳过文件
+		}
+
 		// 获取相对路径，保留顶层目录
 		headerName, err := filepath.Rel(filepath.Dir(src), path)
 		if err != nil {
@@ -259,37 +277,21 @@ func walkDirectoryForTgz(src string, tarWriter *tar.Writer, cfg *config.Config) 
 		switch {
 		// 处理普通文件
 		case entry.Type().IsRegular():
-			info, err := entry.Info()
-			if err != nil {
-				return fmt.Errorf("处理文件 '%s' 时出错 - 获取文件信息失败: %w", path, err)
-			}
 			cfg.Progress.Adding(headerName) // 更新进度
 			return processRegularFile(tarWriter, path, headerName, info, cfg)
 
 		// 处理目录
 		case entry.IsDir():
-			info, err := entry.Info()
-			if err != nil {
-				return fmt.Errorf("处理目录 '%s' 时出错 - 获取目录信息失败: %w", path, err)
-			}
 			cfg.Progress.Storing(headerName) // 更新进度
 			return processDirectory(tarWriter, headerName, info)
 
 		// 处理符号链接
 		case entry.Type()&os.ModeSymlink != 0:
-			info, err := entry.Info()
-			if err != nil {
-				return fmt.Errorf("处理符号链接 '%s' 时出错 - 获取文件信息失败: %w", path, err)
-			}
 			cfg.Progress.Adding(headerName) // 更新进度
 			return processSymlink(tarWriter, path, headerName, info)
 
 		// 处理特殊文件
 		default:
-			info, err := entry.Info()
-			if err != nil {
-				return fmt.Errorf("处理特殊文件 '%s' 时出错 - 获取文件信息失败: %w", path, err)
-			}
 			cfg.Progress.Adding(headerName) // 更新进度
 			return processSpecialFile(tarWriter, headerName, info)
 		}

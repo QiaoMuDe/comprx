@@ -4,57 +4,27 @@ import (
 	"os"
 	"path/filepath"
 	"testing"
-	"time"
 )
 
-// mockFileInfo 模拟文件信息，用于测试
-type mockFileInfo struct {
-	name    string
-	size    int64
-	mode    os.FileMode
-	modTime time.Time
-	isDir   bool
-}
-
-func (m mockFileInfo) Name() string       { return m.name }
-func (m mockFileInfo) Size() int64        { return m.size }
-func (m mockFileInfo) Mode() os.FileMode  { return m.mode }
-func (m mockFileInfo) ModTime() time.Time { return m.modTime }
-func (m mockFileInfo) IsDir() bool        { return m.isDir }
-func (m mockFileInfo) Sys() interface{}   { return nil }
-
-// 创建文件信息的辅助函数
-func createFileInfo(name string, size int64, isDir bool) os.FileInfo {
-	return mockFileInfo{
-		name:    name,
-		size:    size,
-		mode:    0644,
-		modTime: time.Now(),
-		isDir:   isDir,
-	}
-}
-
-func TestFilterOptions_ShouldSkip_NilFilter(t *testing.T) {
+func TestFilterOptions_ShouldSkipByParams_NilFilter(t *testing.T) {
 	var filter *FilterOptions = nil
-	fileInfo := createFileInfo("test.go", 1000, false)
 
-	result := filter.ShouldSkip("test.go", fileInfo)
+	result := filter.ShouldSkipByParams("test.go", 1000, false)
 	if result != false {
 		t.Errorf("期望 nil 过滤器返回 false，实际返回 %v", result)
 	}
 }
 
-func TestFilterOptions_ShouldSkip_EmptyFilter(t *testing.T) {
+func TestFilterOptions_ShouldSkipByParams_EmptyFilter(t *testing.T) {
 	filter := &FilterOptions{}
-	fileInfo := createFileInfo("test.go", 1000, false)
 
-	result := filter.ShouldSkip("test.go", fileInfo)
+	result := filter.ShouldSkipByParams("test.go", 1000, false)
 	if result != false {
 		t.Errorf("期望空过滤器返回 false，实际返回 %v", result)
 	}
 }
 
-func TestFilterOptions_ShouldSkip_SizeFilter(t *testing.T) {
+func TestFilterOptions_ShouldSkipByParams_SizeFilter(t *testing.T) {
 	tests := []struct {
 		name     string
 		filter   FilterOptions
@@ -122,8 +92,7 @@ func TestFilterOptions_ShouldSkip_SizeFilter(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			fileInfo := createFileInfo(tt.fileName, tt.fileSize, tt.isDir)
-			result := tt.filter.ShouldSkip(tt.fileName, fileInfo)
+			result := tt.filter.ShouldSkipByParams(tt.fileName, tt.fileSize, tt.isDir)
 			if result != tt.expected {
 				t.Errorf("%s: 期望 %v，实际 %v", tt.desc, tt.expected, result)
 			}
@@ -131,7 +100,7 @@ func TestFilterOptions_ShouldSkip_SizeFilter(t *testing.T) {
 	}
 }
 
-func TestFilterOptions_ShouldSkip_IncludePattern(t *testing.T) {
+func TestFilterOptions_ShouldSkipByParams_IncludePattern(t *testing.T) {
 	tests := []struct {
 		name     string
 		filter   FilterOptions
@@ -185,8 +154,7 @@ func TestFilterOptions_ShouldSkip_IncludePattern(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			fileInfo := createFileInfo(filepath.Base(tt.filePath), 1000, false)
-			result := tt.filter.ShouldSkip(tt.filePath, fileInfo)
+			result := tt.filter.ShouldSkipByParams(tt.filePath, 1000, false)
 			if result != tt.expected {
 				t.Errorf("%s: 期望 %v，实际 %v", tt.desc, tt.expected, result)
 			}
@@ -194,7 +162,7 @@ func TestFilterOptions_ShouldSkip_IncludePattern(t *testing.T) {
 	}
 }
 
-func TestFilterOptions_ShouldSkip_ExcludePattern(t *testing.T) {
+func TestFilterOptions_ShouldSkipByParams_ExcludePattern(t *testing.T) {
 	tests := []struct {
 		name     string
 		filter   FilterOptions
@@ -241,8 +209,7 @@ func TestFilterOptions_ShouldSkip_ExcludePattern(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			fileInfo := createFileInfo(filepath.Base(tt.filePath), 1000, false)
-			result := tt.filter.ShouldSkip(tt.filePath, fileInfo)
+			result := tt.filter.ShouldSkipByParams(tt.filePath, 1000, false)
 			if result != tt.expected {
 				t.Errorf("%s: 期望 %v，实际 %v", tt.desc, tt.expected, result)
 			}
@@ -250,7 +217,7 @@ func TestFilterOptions_ShouldSkip_ExcludePattern(t *testing.T) {
 	}
 }
 
-func TestFilterOptions_ShouldSkip_CombinedFilters(t *testing.T) {
+func TestFilterOptions_ShouldSkipByParams_CombinedFilters(t *testing.T) {
 	tests := []struct {
 		name     string
 		filter   FilterOptions
@@ -320,8 +287,7 @@ func TestFilterOptions_ShouldSkip_CombinedFilters(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			fileInfo := createFileInfo(filepath.Base(tt.filePath), tt.fileSize, false)
-			result := tt.filter.ShouldSkip(tt.filePath, fileInfo)
+			result := tt.filter.ShouldSkipByParams(tt.filePath, tt.fileSize, false)
 			if result != tt.expected {
 				t.Errorf("%s: 期望 %v，实际 %v", tt.desc, tt.expected, result)
 			}
@@ -628,7 +594,7 @@ func TestParseIgnoreFileContent(t *testing.T) {
 }
 
 // 基准测试
-func BenchmarkFilterOptions_ShouldSkip(b *testing.B) {
+func BenchmarkFilterOptions_ShouldSkipByParams(b *testing.B) {
 	filter := &FilterOptions{
 		Include: []string{"*.go", "*.md"},
 		Exclude: []string{"*_test.go", "vendor/*"},
@@ -636,11 +602,9 @@ func BenchmarkFilterOptions_ShouldSkip(b *testing.B) {
 		MaxSize: 1024 * 1024,
 	}
 
-	fileInfo := createFileInfo("main.go", 1000, false)
-
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		filter.ShouldSkip("src/main.go", fileInfo)
+		filter.ShouldSkipByParams("src/main.go", 1000, false)
 	}
 }
 

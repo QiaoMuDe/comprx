@@ -36,7 +36,7 @@ type FilterOptions struct {
 	MinSize int64    // 最小文件大小（字节），默认为 0
 }
 
-// ShouldSkip 判断文件是否应该被跳过
+// ShouldSkipByParams 判断文件是否应该被跳过（通用方法，用于压缩和解压）
 //
 // 过滤逻辑:
 //  1. 检查文件大小是否符合要求
@@ -45,11 +45,12 @@ type FilterOptions struct {
 //
 // 参数:
 //   - path: 文件路径
-//   - info: 文件信息
+//   - size: 文件大小（字节）
+//   - isDir: 是否为目录
 //
 // 返回:
 //   - bool: true 表示应该跳过，false 表示应该处理
-func (f *FilterOptions) ShouldSkip(path string, info os.FileInfo) bool {
+func (f *FilterOptions) ShouldSkipByParams(path string, size int64, isDir bool) bool {
 	// 如果过滤器为空，不跳过任何文件
 	if f == nil {
 		return false
@@ -67,7 +68,7 @@ func (f *FilterOptions) ShouldSkip(path string, info os.FileInfo) bool {
 	}
 
 	// 1. 检查文件大小 - 不符合大小要求的文件应该被跳过
-	if !f.checkSizeFilter(info) {
+	if !f.checkSizeFilterByParams(size, isDir) {
 		return true
 	}
 
@@ -91,19 +92,18 @@ func (f *FilterOptions) ShouldSkip(path string, info os.FileInfo) bool {
 	return false
 }
 
-// checkSizeFilter 检查文件大小是否符合过滤条件
+// checkSizeFilterByParams 检查文件大小是否符合过滤条件（通用方法）
 //
 // 参数:
-//   - info: 文件信息
+//   - size: 文件大小（字节）
+//   - isDir: 是否为目录
 //
 // 返回:
 //   - bool: true 表示符合大小要求，false 表示不符合大小要求
-func (f *FilterOptions) checkSizeFilter(info os.FileInfo) bool {
-	if info.IsDir() {
+func (f *FilterOptions) checkSizeFilterByParams(size int64, isDir bool) bool {
+	if isDir {
 		return true // 目录总是符合大小要求
 	}
-
-	size := info.Size()
 
 	// 检查最小大小 - 文件太小不符合要求
 	if f.MinSize > 0 && size < f.MinSize {
@@ -159,8 +159,8 @@ func (f *FilterOptions) matchPattern(pattern, path string) bool {
 		return true
 	}
 
-	// 3. 尝试匹配目录（处理以 / 结尾的模式）
-	if len(pattern) > 0 && (pattern[len(pattern)-1] == '/' || pattern[len(pattern)-1] == '\\') {
+	// 3. 尝试匹配目录（处理以路径分隔符结尾的模式）
+	if len(pattern) > 0 && os.IsPathSeparator(pattern[len(pattern)-1]) {
 		dirPattern := pattern[:len(pattern)-1]
 		if matched, err := filepath.Match(dirPattern, filepath.Base(path)); err == nil && matched {
 			return true
