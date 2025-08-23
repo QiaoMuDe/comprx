@@ -17,6 +17,7 @@ func TestCompressType_String(t *testing.T) {
 		{"GZ格式", CompressTypeGz, ".gz"},
 		{"BZ2格式", CompressTypeBz2, ".bz2"},
 		{"BZIP2格式", CompressTypeBzip2, ".bzip2"},
+		{"ZLIB格式", CompressTypeZlib, ".zlib"},
 	}
 
 	for _, tt := range tests {
@@ -65,7 +66,7 @@ func TestSupportedCompressTypes(t *testing.T) {
 	}
 
 	// 检查是否包含所有预期的格式
-	expectedTypes := []string{".zip", ".tar", ".tgz", ".tar.gz", ".gz", ".bz2", ".bzip2"}
+	expectedTypes := []string{".zip", ".tar", ".tgz", ".tar.gz", ".gz", ".bz2", ".bzip2", ".zlib"}
 
 	for _, expected := range expectedTypes {
 		found := false
@@ -100,6 +101,7 @@ func TestDetectCompressFormat(t *testing.T) {
 		{"GZ文件", "test.gz", CompressTypeGz, false},
 		{"BZ2文件", "test.bz2", CompressTypeBz2, false},
 		{"BZIP2文件", "test.bzip2", CompressTypeBzip2, false},
+		{"ZLIB文件", "test.zlib", CompressTypeZlib, false},
 		{"大写扩展名", "TEST.ZIP", CompressTypeZip, false},
 		{"混合大小写", "Test.Tar.Gz", CompressTypeTarGz, false},
 		{"带路径的文件", "/path/to/file.zip", CompressTypeZip, false},

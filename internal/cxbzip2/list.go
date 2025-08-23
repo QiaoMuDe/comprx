@@ -47,20 +47,14 @@ func ListBz2(archivePath string) (*types.ArchiveInfo, error) {
 	}
 
 	// BZ2是单文件压缩，需要读取整个文件来获取原始大小
-	// 为了避免读取大文件，我们使用一个估算方法
-	var originalSize int64
-	buffer := make([]byte, utils.DefaultBufferSize)
-	for {
-		n, err := bz2Reader.Read(buffer)
-		if err != nil {
-			if err == io.EOF {
-				break
-			}
-			// 如果读取失败，使用压缩文件大小作为估算
-			originalSize = stat.Size()
-			break
-		}
-		originalSize += int64(n)
+	// 使用io.CopyBuffer配合io.Discard，既高效又准确
+	buffer := utils.GetBuffer(utils.DefaultBufferSize)
+	defer utils.PutBuffer(buffer)
+
+	originalSize, err := io.CopyBuffer(io.Discard, bz2Reader, buffer)
+	if err != nil {
+		// 如果读取失败，使用压缩文件大小作为估算
+		originalSize = stat.Size()
 	}
 
 	// 创建BZ2文件信息

@@ -106,22 +106,6 @@ func (f *FilterOptions) WithSizeRange(minSize, maxSize int64) *FilterOptions {
 	return f
 }
 
-// WithIgnoreFile 从忽略文件加载排除模式
-//
-// 参数:
-//   - ignoreFilePath: 忽略文件路径
-//
-// 返回:
-//   - *FilterOptions: 返回自身，支持链式调用
-func (f *FilterOptions) WithIgnoreFile(ignoreFilePath string) *FilterOptions {
-	if ignoreFilePath == "" {
-		return f
-	}
-	patterns := LoadExcludeFromFileOrEmpty(ignoreFilePath)
-	f.Exclude = append(f.Exclude, patterns...)
-	return f
-}
-
 // ShouldSkipByParams 判断文件是否应该被跳过(通用方法，用于压缩和解压)
 //
 // 过滤逻辑:
@@ -498,62 +482,5 @@ func HasFilterConditions(filter *FilterOptions) bool {
 		filter.MaxSize > 0
 }
 
-// LoadExcludeFromFile 从忽略文件加载排除模式
-//
-// 参数:
-//   - ignoreFilePath: 忽略文件路径
-//
-// 返回:
-//   - []string: 排除模式列表
-//   - error: 错误信息
-func LoadExcludeFromFile(ignoreFilePath string) ([]string, error) {
-	content, err := os.ReadFile(ignoreFilePath)
-	if err != nil {
-		return nil, err
-	}
-
-	return parseIgnoreFileContent(string(content)), nil
-}
-
-// LoadExcludeFromFileOrEmpty 从忽略文件加载排除模式，文件不存在时返回空列表
-//
-// 参数:
-//   - ignoreFilePath: 忽略文件路径
-//
-// 返回:
-//   - []string: 排除模式列表
-func LoadExcludeFromFileOrEmpty(ignoreFilePath string) []string {
-	patterns, err := LoadExcludeFromFile(ignoreFilePath)
-	if err != nil {
-		return []string{}
-	}
-	return patterns
-}
-
-// parseIgnoreFileContent 解析忽略文件内容
-//
-// 参数:
-//   - content: 文件内容
-//
-// 返回:
-//   - []string: 排除模式列表
-func parseIgnoreFileContent(content string) []string {
-	var patterns []string
-
-	// 按行分割
-	lines := strings.Split(content, "\n")
-
-	for _, line := range lines {
-		// 去除空白
-		line = strings.TrimSpace(line)
-
-		// 跳过空行和注释
-		if line == "" || strings.HasPrefix(line, "#") {
-			continue
-		}
-
-		patterns = append(patterns, line)
-	}
-
-	return patterns
-}
+// 注意：LoadExcludeFromFile 和 LoadExcludeFromFileOrEmpty 函数已移至主包 comprx
+// 请使用 comprx.LoadExcludeFromFile 和 comprx.LoadExcludeFromFileOrEmpty

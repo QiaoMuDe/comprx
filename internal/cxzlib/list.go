@@ -1,7 +1,7 @@
-package cxgzip
+package cxzlib
 
 import (
-	"compress/gzip"
+	"compress/zlib"
 	"fmt"
 	"io"
 	"os"
@@ -12,10 +12,10 @@ import (
 	"gitee.com/MM-Q/comprx/types"
 )
 
-// ListGzip 获取GZIP压缩包的文件信息
-func ListGzip(archivePath string) (*types.ArchiveInfo, error) {
+// ListZlib 获取ZLIB压缩包的文件信息
+func ListZlib(archivePath string) (*types.ArchiveInfo, error) {
 	// 确保路径为绝对路径
-	absPath, err := utils.EnsureAbsPath(archivePath, "GZIP文件路径")
+	absPath, err := utils.EnsureAbsPath(archivePath, "ZLIB文件路径")
 	if err != nil {
 		return nil, err
 	}
@@ -26,46 +26,42 @@ func ListGzip(archivePath string) (*types.ArchiveInfo, error) {
 		return nil, fmt.Errorf("检测压缩格式失败: %w", err)
 	}
 
-	// 打开GZIP文件
+	// 打开ZLIB文件
 	file, err := os.Open(absPath)
 	if err != nil {
-		return nil, fmt.Errorf("打开GZIP文件失败: %w", err)
+		return nil, fmt.Errorf("打开ZLIB文件失败: %w", err)
 	}
 	defer func() { _ = file.Close() }()
 
 	// 获取压缩包文件信息
 	stat, err := file.Stat()
 	if err != nil {
-		return nil, fmt.Errorf("获取GZIP文件信息失败: %w", err)
+		return nil, fmt.Errorf("获取ZLIB文件信息失败: %w", err)
 	}
 
-	// 创建GZIP读取器
-	gzipReader, err := gzip.NewReader(file)
+	// 创建ZLIB读取器
+	zlibReader, err := zlib.NewReader(file)
 	if err != nil {
-		return nil, fmt.Errorf("创建GZIP读取器失败: %w", err)
+		return nil, fmt.Errorf("创建ZLIB读取器失败: %w", err)
 	}
-	defer func() { _ = gzipReader.Close() }()
+	defer func() { _ = zlibReader.Close() }()
 
-	// 获取原始文件名
-	originalName := gzipReader.Name
-	if originalName == "" {
-		// 如果GZIP头中没有文件名，从压缩包文件名推导
-		baseName := filepath.Base(absPath)
-		if ext := filepath.Ext(baseName); ext == ".gz" {
-			//originalName = baseName[:len(baseName)-len(ext)]
-			// 去除.gz后缀
-			originalName = strings.TrimSuffix(baseName, ".gz")
-		} else {
-			originalName = baseName + utils.DecompressedSuffix
-		}
+	// 获取原始文件名（ZLIB格式没有文件名信息，从压缩包文件名推导）
+	baseName := filepath.Base(absPath)
+	var originalName string
+	if ext := filepath.Ext(baseName); ext == ".zlib" {
+		// 去除.zlib后缀
+		originalName = strings.TrimSuffix(baseName, ".zlib")
+	} else {
+		originalName = baseName + utils.DecompressedSuffix
 	}
 
-	// GZIP是单文件压缩，需要读取整个文件来获取原始大小
+	// ZLIB是单文件压缩，需要读取整个文件来获取原始大小
 	// 使用io.CopyBuffer配合io.Discard，既高效又准确
 	buffer := utils.GetBuffer(utils.DefaultBufferSize)
 	defer utils.PutBuffer(buffer)
 
-	originalSize, err := io.CopyBuffer(io.Discard, gzipReader, buffer)
+	originalSize, err := io.CopyBuffer(io.Discard, zlibReader, buffer)
 	if err != nil {
 		// 如果读取失败，使用压缩文件大小作为估算
 		originalSize = stat.Size()
@@ -76,8 +72,8 @@ func ListGzip(archivePath string) (*types.ArchiveInfo, error) {
 		Name:           originalName,
 		Size:           originalSize,
 		CompressedSize: stat.Size(),
-		ModTime:        gzipReader.ModTime,
-		Mode:           utils.DefaultFileMode, // GZIP不保存文件权限，使用默认权限
+		ModTime:        stat.ModTime(),        // ZLIB不保存修改时间，使用压缩文件的修改时间
+		Mode:           utils.DefaultFileMode, // ZLIB不保存文件权限，使用默认权限
 		IsDir:          false,
 		IsSymlink:      false,
 	}
@@ -94,20 +90,20 @@ func ListGzip(archivePath string) (*types.ArchiveInfo, error) {
 	return archiveInfo, nil
 }
 
-// ListGzipLimit 获取GZIP压缩包指定数量的文件信息
-func ListGzipLimit(archivePath string, limit int) (*types.ArchiveInfo, error) {
-	archiveInfo, err := ListGzip(archivePath)
+// ListZlibLimit 获取ZLIB压缩包指定数量的文件信息
+func ListZlibLimit(archivePath string, limit int) (*types.ArchiveInfo, error) {
+	archiveInfo, err := ListZlib(archivePath)
 	if err != nil {
 		return nil, err
 	}
 
-	// GZIP只有一个文件，limit不影响结果
+	// ZLIB只有一个文件，limit不影响结果
 	return archiveInfo, nil
 }
 
-// ListGzipMatch 获取GZIP压缩包中匹配指定模式的文件信息
-func ListGzipMatch(archivePath string, pattern string) (*types.ArchiveInfo, error) {
-	archiveInfo, err := ListGzip(archivePath)
+// ListZlibMatch 获取ZLIB压缩包中匹配指定模式的文件信息
+func ListZlibMatch(archivePath string, pattern string) (*types.ArchiveInfo, error) {
+	archiveInfo, err := ListZlib(archivePath)
 	if err != nil {
 		return nil, err
 	}

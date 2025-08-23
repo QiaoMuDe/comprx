@@ -1,7 +1,6 @@
 package types
 
 import (
-	"os"
 	"path/filepath"
 	"strings"
 	"testing"
@@ -469,131 +468,6 @@ func TestHasFilterConditions(t *testing.T) {
 			result := HasFilterConditions(tt.filter)
 			if result != tt.expected {
 				t.Errorf("%s: 期望 %v，实际 %v", tt.desc, tt.expected, result)
-			}
-		})
-	}
-}
-
-func TestLoadExcludeFromFile(t *testing.T) {
-	// 创建临时测试文件
-	tempDir := t.TempDir()
-
-	// 测试正常的忽略文件
-	normalIgnoreFile := filepath.Join(tempDir, ".testignore")
-	normalContent := `# 这是注释
-*.tmp
-*.log
-
-# 另一个注释
-vendor/
-node_modules/
-*.exe`
-
-	err := os.WriteFile(normalIgnoreFile, []byte(normalContent), 0644)
-	if err != nil {
-		t.Fatalf("创建测试文件失败: %v", err)
-	}
-
-	// 测试加载正常文件
-	patterns, err := LoadExcludeFromFile(normalIgnoreFile)
-	if err != nil {
-		t.Fatalf("加载忽略文件失败: %v", err)
-	}
-
-	expectedPatterns := []string{"*.tmp", "*.log", "vendor/", "node_modules/", "*.exe"}
-	if len(patterns) != len(expectedPatterns) {
-		t.Errorf("期望 %d 个模式，实际 %d 个", len(expectedPatterns), len(patterns))
-	}
-
-	for i, expected := range expectedPatterns {
-		if i >= len(patterns) || patterns[i] != expected {
-			t.Errorf("模式 %d: 期望 '%s'，实际 '%s'", i, expected, patterns[i])
-		}
-	}
-
-	// 测试不存在的文件
-	nonExistentFile := filepath.Join(tempDir, ".nonexistent")
-	_, err = LoadExcludeFromFile(nonExistentFile)
-	if err == nil {
-		t.Error("期望加载不存在的文件时返回错误")
-	}
-}
-
-func TestLoadExcludeFromFileOrEmpty(t *testing.T) {
-	tempDir := t.TempDir()
-
-	// 测试存在的文件
-	existingFile := filepath.Join(tempDir, ".testignore")
-	content := "*.tmp\n*.log"
-	err := os.WriteFile(existingFile, []byte(content), 0644)
-	if err != nil {
-		t.Fatalf("创建测试文件失败: %v", err)
-	}
-
-	patterns := LoadExcludeFromFileOrEmpty(existingFile)
-	if len(patterns) != 2 {
-		t.Errorf("期望 2 个模式，实际 %d 个", len(patterns))
-	}
-
-	// 测试不存在的文件
-	nonExistentFile := filepath.Join(tempDir, ".nonexistent")
-	patterns = LoadExcludeFromFileOrEmpty(nonExistentFile)
-	if len(patterns) != 0 {
-		t.Errorf("期望空列表，实际 %d 个模式", len(patterns))
-	}
-}
-
-func TestParseIgnoreFileContent(t *testing.T) {
-	tests := []struct {
-		name     string
-		content  string
-		expected []string
-		desc     string
-	}{
-		{
-			name:     "正常内容",
-			content:  "*.tmp\n*.log\nvendor/",
-			expected: []string{"*.tmp", "*.log", "vendor/"},
-			desc:     "解析正常的忽略文件内容",
-		},
-		{
-			name:     "包含注释和空行",
-			content:  "# 注释\n*.tmp\n\n*.log\n# 另一个注释",
-			expected: []string{"*.tmp", "*.log"},
-			desc:     "跳过注释和空行",
-		},
-		{
-			name:     "空内容",
-			content:  "",
-			expected: []string{},
-			desc:     "空内容返回空列表",
-		},
-		{
-			name:     "只有注释",
-			content:  "# 注释1\n# 注释2",
-			expected: []string{},
-			desc:     "只有注释时返回空列表",
-		},
-		{
-			name:     "只有空行",
-			content:  "\n\n\n",
-			expected: []string{},
-			desc:     "只有空行时返回空列表",
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			result := parseIgnoreFileContent(tt.content)
-			if len(result) != len(tt.expected) {
-				t.Errorf("%s: 期望 %d 个模式，实际 %d 个", tt.desc, len(tt.expected), len(result))
-				return
-			}
-
-			for i, expected := range tt.expected {
-				if result[i] != expected {
-					t.Errorf("%s: 模式 %d 期望 '%s'，实际 '%s'", tt.desc, i, expected, result[i])
-				}
 			}
 		})
 	}

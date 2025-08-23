@@ -45,7 +45,9 @@ func calculateBzip2TotalSize(bz2FilePath string, cfg *config.Config) int64 {
 
 	// 由于BZIP2是流式压缩，我们需要读取整个文件来计算大小
 	// 使用进度条作为写入器，直接通过io.CopyBuffer计算总大小
-	buffer := make([]byte, 32*1024) // 32KB缓冲区
+	buffer := utils.GetBuffer(utils.DefaultBufferSize)
+	defer utils.PutBuffer(buffer)
+
 	totalSize, err := io.CopyBuffer(bar, bz2Reader, buffer)
 	if err != nil {
 		return 0 // 如果出错，返回0表示无法计算大小

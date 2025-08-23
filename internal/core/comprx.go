@@ -11,6 +11,7 @@ import (
 	"gitee.com/MM-Q/comprx/internal/cxtar"
 	"gitee.com/MM-Q/comprx/internal/cxtgz"
 	"gitee.com/MM-Q/comprx/internal/cxzip"
+	"gitee.com/MM-Q/comprx/internal/cxzlib"
 	"gitee.com/MM-Q/comprx/internal/utils"
 	"gitee.com/MM-Q/comprx/types"
 )
@@ -89,6 +90,9 @@ func (c *Comprx) Pack(dst string, src string) error {
 	case types.CompressTypeGz: // Gz
 		return cxgzip.Gzip(dst, src, c.Config)
 
+	case types.CompressTypeZlib: // Zlib
+		return cxzlib.Zlib(dst, src, c.Config)
+
 	default:
 		return fmt.Errorf("不支持的压缩格式: %s", compressType)
 	}
@@ -152,6 +156,9 @@ func (c *Comprx) Unpack(src string, dst string) error {
 
 	case types.CompressTypeBz2, types.CompressTypeBzip2: // Bz2, Bzip2
 		return cxbzip2.Unbz2(src, dst, c.Config)
+
+	case types.CompressTypeZlib: // Zlib
+		return cxzlib.Unzlib(src, dst, c.Config)
 
 	default:
 		return fmt.Errorf("不支持的压缩格式: %s", compressType)

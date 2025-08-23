@@ -49,7 +49,9 @@ func calculateGzipTotalSize(gzipFilePath string, cfg *config.Config) int64 {
 
 	// 由于GZIP是流式压缩，我们需要读取整个文件来计算大小
 	// 使用进度条作为写入器，直接通过io.CopyBuffer计算总大小
-	buffer := make([]byte, 32*1024) // 32KB缓冲区
+	buffer := utils.GetBuffer(utils.DefaultBufferSize) // 32KB缓冲区
+	defer utils.PutBuffer(buffer)
+
 	totalSize, err := io.CopyBuffer(bar, gzipReader, buffer)
 	if err != nil {
 		return 0 // 如果出错，返回0表示无法计算大小
