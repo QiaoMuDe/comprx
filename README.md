@@ -341,8 +341,6 @@ comprx/
 │   ├── types.go          # 基础类型定义（压缩格式、压缩级别、进度条样式）
 │   ├── filter.go         # 过滤器类型和实现
 │   └── list.go           # 列表相关类型
-├── config/               # 配置管理
-│   └── config.go         # 内部配置结构
 ├── internal/
 │   ├── core/             # 核心压缩逻辑和集成
 │   ├── cxzip/            # ZIP 格式处理（压缩、解压、列表）
