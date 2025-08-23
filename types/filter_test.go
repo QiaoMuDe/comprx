@@ -3,6 +3,7 @@ package types
 import (
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 )
 
@@ -332,7 +333,9 @@ func TestFilterOptions_matchPattern(t *testing.T) {
 			// 预计算路径信息以匹配新的函数签名
 			baseName := filepath.Base(tt.path)
 			slashPath := filepath.ToSlash(tt.path)
-			result := filter.matchPattern(tt.pattern, tt.path, baseName, slashPath)
+			// 标准化模式以匹配新的函数签名
+			normalizedPattern := strings.ReplaceAll(tt.pattern, "\\", "/")
+			result := filter.matchPattern(normalizedPattern, tt.path, baseName, slashPath)
 			if result != tt.expected {
 				t.Errorf("模式 '%s' 匹配路径 '%s': 期望 %v，实际 %v",
 					tt.pattern, tt.path, tt.expected, result)
@@ -613,7 +616,7 @@ func BenchmarkFilterOptions_ShouldSkipByParams(b *testing.B) {
 
 func BenchmarkFilterOptions_matchPattern(b *testing.B) {
 	filter := &FilterOptions{}
-	
+
 	// 预计算路径信息以匹配新的函数签名
 	path := "main.go"
 	baseName := filepath.Base(path)

@@ -235,7 +235,11 @@ func (f *FilterOptions) matchAnyPattern(patterns []string, path string) bool {
 			continue
 		}
 
-		if f.matchPattern(pattern, path, baseName, slashPath) {
+		// 统一标准化模式，避免在子函数中重复处理
+		normalizedPattern := strings.ReplaceAll(pattern, "\\", "/")
+
+		// 匹配模式
+		if f.matchPattern(normalizedPattern, path, baseName, slashPath) {
 			return true
 		}
 	}
@@ -250,14 +254,14 @@ func (f *FilterOptions) matchAnyPattern(patterns []string, path string) bool {
 //  3. 目录匹配（如 vendor/ 匹配 vendor 目录）
 //
 // 参数:
-//   - pattern: glob 模式
+//   - normalizedPattern: 已标准化的 glob 模式（路径分隔符已统一为正斜杠）
 //   - path: 文件路径
 //   - baseName: 预计算的文件名（可选，空字符串表示需要计算）
 //   - slashPath: 预计算的标准化路径（可选，空字符串表示需要计算）
 //
 // 返回:
 //   - bool: true 表示匹配，false 表示不匹配
-func (f *FilterOptions) matchPattern(pattern, path, baseName, slashPath string) bool {
+func (f *FilterOptions) matchPattern(normalizedPattern, path, baseName, slashPath string) bool {
 	// 懒加载: 只在需要时计算文件名和标准化路径
 	if baseName == "" {
 		baseName = filepath.Base(path)
@@ -267,12 +271,12 @@ func (f *FilterOptions) matchPattern(pattern, path, baseName, slashPath string) 
 	}
 
 	// 快速匹配: 处理常见的简单模式，避免复杂的glob解析
-	if matched, handled := f.fastMatch(pattern, slashPath, baseName); handled {
+	if matched, handled := f.fastMatch(normalizedPattern, slashPath, baseName); handled {
 		return matched
 	}
 
 	// 复杂匹配(仅在快速匹配失败时使用): 处理复杂的 glob 模式，如 "src/*"、"vendor/**" 等
-	return f.complexMatch(pattern, path, baseName, slashPath)
+	return f.complexMatch(normalizedPattern, path, baseName, slashPath)
 }
 
 // fastMatch 快速匹配常见的简单模式
@@ -281,7 +285,7 @@ func (f *FilterOptions) matchPattern(pattern, path, baseName, slashPath string) 
 // 支持的快速模式包括：*.ext、精确匹配、prefix*、dirname/、*pattern* 等
 //
 // 参数:
-//   - pattern: glob 模式字符串
+//   - normalizedPattern: 已标准化的 glob 模式字符串（路径分隔符已统一为正斜杠）
 //   - slashPath: 标准化的文件路径（使用正斜杠）
 //   - baseName: 文件名（不含路径）
 //
@@ -300,15 +304,11 @@ func (f *FilterOptions) matchPattern(pattern, path, baseName, slashPath string) 
 //	    return matched  // 快速匹配完成，直接返回结果
 //	}
 //	否则继续使用复杂匹配...
-func (f *FilterOptions) fastMatch(pattern, slashPath, baseName string) (matched bool, handled bool) {
+func (f *FilterOptions) fastMatch(normalizedPattern, slashPath, baseName string) (matched bool, handled bool) {
 	// 0. 处理空模式 - 空模式不匹配任何文件
-	if pattern == "" {
+	if normalizedPattern == "" {
 		return false, true
 	}
-
-	// 预处理：统一化模式中的路径分隔符，避免后续重复判断
-	// 将反斜杠统一转换为正斜杠，因为路径已通过 filepath.ToSlash() 统一化
-	normalizedPattern := strings.ReplaceAll(pattern, "\\", "/")
 
 	// 1. 处理后缀匹配 (*.ext) - 最常见的模式
 	if strings.HasPrefix(normalizedPattern, "*.") && len(normalizedPattern) > 2 {
@@ -393,21 +393,18 @@ func (f *FilterOptions) fastMatch(pattern, slashPath, baseName string) (matched 
 // 处理复杂的glob模式，如包含多个通配符、字符类等
 //
 // 参数:
-//   - pattern: glob 模式
+//   - normalizedPattern: 已标准化的 glob 模式（路径分隔符已统一为正斜杠）
 //   - path: 完整文件路径
 //   - baseName: 文件名
 //   - slashPath: 标准化路径
 //
 // 返回:
 //   - bool: 是否匹配
-func (f *FilterOptions) complexMatch(pattern, path, baseName, slashPath string) bool {
+func (f *FilterOptions) complexMatch(normalizedPattern, path, baseName, slashPath string) bool {
 	// 优先使用标准化路径，如果为空则先标准化
 	if slashPath == "" {
 		slashPath = filepath.ToSlash(path)
 	}
-
-	// 统一化模式中的路径分隔符
-	normalizedPattern := strings.ReplaceAll(pattern, "\\", "/")
 
 	// 1. 尝试匹配文件名
 	if matched, err := filepath.Match(normalizedPattern, baseName); err == nil && matched {
