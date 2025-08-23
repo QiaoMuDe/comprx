@@ -142,8 +142,8 @@ func (f *FilterOptions) ShouldSkipByParams(path string, size int64, isDir bool) 
 		return false
 	}
 
-	// 1. 检查文件大小 - 不符合大小要求的文件应该被跳过
-	if !f.checkSizeFilterByParams(size, isDir) {
+	// 1. 检查文件大小 - 不符合大小要求的文件需要跳过
+	if f.shouldSkipBySize(size, isDir) {
 		return true
 	}
 
@@ -167,30 +167,48 @@ func (f *FilterOptions) ShouldSkipByParams(path string, size int64, isDir bool) 
 	return false
 }
 
-// checkSizeFilterByParams 检查文件大小是否符合过滤条件（通用方法）
+// shouldSkipBySize 检查文件是否因大小限制需要跳过
+//
+// 检查逻辑：
+//   - 目录：不受大小限制，永远不跳过
+//   - 文件：检查是否在设定的大小范围内
 //
 // 参数:
 //   - size: 文件大小（字节）
 //   - isDir: 是否为目录
 //
 // 返回:
-//   - bool: true 表示符合大小要求，false 表示不符合大小要求
-func (f *FilterOptions) checkSizeFilterByParams(size int64, isDir bool) bool {
+//   - bool: true=需要跳过, false=不需要跳过
+//
+// 示例:
+//
+//	MinSize=1024, MaxSize=1048576 (1KB-1MB)
+//	- 500字节的文件 → 返回true（太小，跳过）
+//	- 2048字节的文件 → 返回false（合适，不跳过）
+//	- 2MB的文件 → 返回true（太大，跳过）
+func (f *FilterOptions) shouldSkipBySize(size int64, isDir bool) bool {
+	// 目录不受大小限制，永远不跳过
 	if isDir {
-		return true // 目录总是符合大小要求
+		return false
 	}
 
-	// 检查最小大小 - 文件太小不符合要求
+	// 快速路径: 如果没有设置大小限制，直接返回不跳过
+	if f.MinSize <= 0 && f.MaxSize <= 0 {
+		return false
+	}
+
+	// 文件太小，跳过（例如：设置MinSize=1024，文件只有500字节）
 	if f.MinSize > 0 && size < f.MinSize {
-		return false
+		return true
 	}
 
-	// 检查最大大小 - 文件太大不符合要求
+	// 文件太大，跳过（例如：设置MaxSize=1MB，文件有2MB）
 	if f.MaxSize > 0 && size > f.MaxSize {
-		return false
+		return true
 	}
 
-	return true
+	// 文件大小在允许范围内，不跳过
+	return false
 }
 
 // matchAnyPattern 检查路径是否匹配任一模式
@@ -202,8 +220,22 @@ func (f *FilterOptions) checkSizeFilterByParams(size int64, isDir bool) bool {
 // 返回:
 //   - bool: true 表示匹配任一模式，false 表示不匹配任何模式
 func (f *FilterOptions) matchAnyPattern(patterns []string, path string) bool {
+	// 快速失败: 如果没有模式或路径为空，直接返回
+	if len(patterns) == 0 || path == "" {
+		return false
+	}
+
+	// 预计算路径信息，避免在循环中重复计算
+	baseName := filepath.Base(path)
+	slashPath := filepath.ToSlash(path)
+
 	for _, pattern := range patterns {
-		if f.matchPattern(pattern, path) {
+		// 跳过空模式
+		if pattern == "" {
+			continue
+		}
+
+		if f.matchPattern(pattern, path, baseName, slashPath) {
 			return true
 		}
 	}
@@ -220,35 +252,191 @@ func (f *FilterOptions) matchAnyPattern(patterns []string, path string) bool {
 // 参数:
 //   - pattern: glob 模式
 //   - path: 文件路径
+//   - baseName: 预计算的文件名（可选，空字符串表示需要计算）
+//   - slashPath: 预计算的标准化路径（可选，空字符串表示需要计算）
 //
 // 返回:
 //   - bool: true 表示匹配，false 表示不匹配
-func (f *FilterOptions) matchPattern(pattern, path string) bool {
+func (f *FilterOptions) matchPattern(pattern, path, baseName, slashPath string) bool {
+	// 懒加载: 只在需要时计算文件名和标准化路径
+	if baseName == "" {
+		baseName = filepath.Base(path)
+	}
+	if slashPath == "" {
+		slashPath = filepath.ToSlash(path)
+	}
+
+	// 快速匹配: 处理常见的简单模式，避免复杂的glob解析
+	if matched, handled := f.fastMatch(pattern, slashPath, baseName); handled {
+		return matched
+	}
+
+	// 复杂匹配(仅在快速匹配失败时使用): 处理复杂的 glob 模式，如 "src/*"、"vendor/**" 等
+	return f.complexMatch(pattern, path, baseName, slashPath)
+}
+
+// fastMatch 快速匹配常见的简单模式
+//
+// 针对80%的常见模式进行优化，避免复杂的glob解析，显著提升性能。
+// 支持的快速模式包括：*.ext、精确匹配、prefix*、dirname/、*pattern* 等
+//
+// 参数:
+//   - pattern: glob 模式字符串
+//   - slashPath: 标准化的文件路径（使用正斜杠）
+//   - baseName: 文件名（不含路径）
+//
+// 返回值说明:
+//   - matched (第1个返回值): 匹配结果（仅当 handled=true 时有效）
+//   - handled (第2个返回值): 是否能够快速处理
+//
+// 匹配结果:
+//   - handled=true: 已完成快速匹配，直接使用 matched 结果
+//   - handled=false: 无法快速处理，需要回退到复杂的 glob 匹配
+//
+// 使用示例:
+//
+//	matched, handled := f.fastMatch("*.go", "src/main.go", "main.go")
+//	if handled {
+//	    return matched  // 快速匹配完成，直接返回结果
+//	}
+//	否则继续使用复杂匹配...
+func (f *FilterOptions) fastMatch(pattern, slashPath, baseName string) (matched bool, handled bool) {
+	// 0. 处理空模式 - 空模式不匹配任何文件
+	if pattern == "" {
+		return false, true
+	}
+
+	// 预处理：统一化模式中的路径分隔符，避免后续重复判断
+	// 将反斜杠统一转换为正斜杠，因为路径已通过 filepath.ToSlash() 统一化
+	normalizedPattern := strings.ReplaceAll(pattern, "\\", "/")
+
+	// 1. 处理后缀匹配 (*.ext) - 最常见的模式
+	if strings.HasPrefix(normalizedPattern, "*.") && len(normalizedPattern) > 2 {
+		ext := normalizedPattern[2:] // 获取扩展名
+
+		// 确保扩展名中没有其他通配符
+		if !strings.ContainsAny(ext, "*?[]") {
+			return strings.HasSuffix(baseName, ext), true
+		}
+	}
+
+	// 2. 处理精确匹配 (无通配符) - 如 "node_modules", "vendor"
+	if !strings.ContainsAny(normalizedPattern, "*?[]") {
+		// 检查文件名精确匹配或路径包含匹配
+		return baseName == normalizedPattern || strings.Contains(slashPath, normalizedPattern), true
+	}
+
+	// 3. 处理前缀匹配 (prefix*) - 如 "test*", "vendor/*"
+	if strings.HasSuffix(normalizedPattern, "*") && len(normalizedPattern) > 1 {
+		prefix := normalizedPattern[:len(normalizedPattern)-1] // 获取前缀
+
+		// 确保前缀中没有其他通配符
+		if !strings.ContainsAny(prefix, "*?[]") {
+			// 检查文件名前缀匹配
+			if strings.HasPrefix(baseName, prefix) {
+				return true, true
+			}
+			// 检查路径前缀匹配（如 "vendor/*" 匹配 "vendor/package.go"）
+			if strings.HasPrefix(slashPath, prefix) {
+				return true, true
+			}
+			// 检查路径中是否包含该前缀（如 "vendor/*" 匹配 "src/vendor/package.go"）
+			if strings.Contains(slashPath, "/"+prefix) {
+				return true, true
+			}
+			return false, true
+		}
+	}
+
+	// 4. 处理目录匹配 (dirname/) - 如 "node_modules/" 或 "test/"
+	if len(normalizedPattern) > 1 && normalizedPattern[len(normalizedPattern)-1] == '/' {
+		dirName := normalizedPattern[:len(normalizedPattern)-1] // 获取目录名
+
+		// 确保目录名中没有通配符
+		if !strings.ContainsAny(dirName, "*?[]") {
+			// 检查完整路径是否匹配目录名（如 "vendor/" 匹配 "vendor"）
+			if slashPath == dirName {
+				return true, true
+			}
+			// 检查文件名是否匹配目录名（如 "vendor/" 匹配 "vendor"）
+			if baseName == dirName {
+				return true, true
+			}
+			// 检查路径是否以该目录开头（如 "vendor/" 匹配 "vendor/package.go"）
+			if strings.HasPrefix(slashPath, dirName+"/") {
+				return true, true
+			}
+			// 检查路径中是否包含该目录（如 "vendor/" 匹配 "src/vendor/package.go"）
+			if strings.Contains(slashPath, "/"+dirName+"/") {
+				return true, true
+			}
+			return false, true
+		}
+	}
+
+	// 5. 处理中间通配符 (*pattern*) - 如 "*test*"
+	if strings.HasPrefix(normalizedPattern, "*") && strings.HasSuffix(normalizedPattern, "*") && len(normalizedPattern) > 2 {
+		middle := normalizedPattern[1 : len(normalizedPattern)-1] // 获取中间部分
+
+		// 确保中间部分没有其他通配符
+		if !strings.ContainsAny(middle, "*?[]") {
+			return strings.Contains(baseName, middle) || strings.Contains(slashPath, middle), true
+		}
+	}
+
+	// 无法使用快速匹配，需要使用复杂匹配
+	return false, false
+}
+
+// complexMatch 复杂模式匹配
+// 处理复杂的glob模式，如包含多个通配符、字符类等
+//
+// 参数:
+//   - pattern: glob 模式
+//   - path: 完整文件路径
+//   - baseName: 文件名
+//   - slashPath: 标准化路径
+//
+// 返回:
+//   - bool: 是否匹配
+func (f *FilterOptions) complexMatch(pattern, path, baseName, slashPath string) bool {
+	// 优先使用标准化路径，如果为空则先标准化
+	if slashPath == "" {
+		slashPath = filepath.ToSlash(path)
+	}
+
+	// 统一化模式中的路径分隔符
+	normalizedPattern := strings.ReplaceAll(pattern, "\\", "/")
+
 	// 1. 尝试匹配文件名
-	if matched, err := filepath.Match(pattern, filepath.Base(path)); err == nil && matched {
+	if matched, err := filepath.Match(normalizedPattern, baseName); err == nil && matched {
 		return true
 	}
 
-	// 2. 尝试匹配完整路径
-	if matched, err := filepath.Match(pattern, path); err == nil && matched {
+	// 2. 尝试匹配标准化路径
+	if matched, err := filepath.Match(normalizedPattern, slashPath); err == nil && matched {
 		return true
 	}
 
-	// 3. 尝试匹配目录（处理以路径分隔符结尾的模式）
-	if len(pattern) > 0 && os.IsPathSeparator(pattern[len(pattern)-1]) {
-		dirPattern := pattern[:len(pattern)-1]
-		if matched, err := filepath.Match(dirPattern, filepath.Base(path)); err == nil && matched {
+	// 3. 尝试匹配目录(处理以正斜杠结尾的模式)
+	if len(normalizedPattern) > 0 && normalizedPattern[len(normalizedPattern)-1] == '/' {
+		dirPattern := normalizedPattern[:len(normalizedPattern)-1] // 获取目录模式
+
+		// 先匹配目录名
+		if matched, err := filepath.Match(dirPattern, baseName); err == nil && matched {
 			return true
 		}
-		if matched, err := filepath.Match(dirPattern, path); err == nil && matched {
+
+		// 再匹配标准化路径
+		if matched, err := filepath.Match(dirPattern, slashPath); err == nil && matched {
 			return true
 		}
 	}
 
 	// 4. 处理路径中包含模式的情况
-	pathParts := strings.Split(filepath.ToSlash(path), "/")
+	pathParts := strings.Split(slashPath, "/") // 分割标准化路径
 	for _, part := range pathParts {
-		if matched, err := filepath.Match(pattern, part); err == nil && matched {
+		if matched, err := filepath.Match(normalizedPattern, part); err == nil && matched {
 			return true
 		}
 	}

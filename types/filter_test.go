@@ -329,7 +329,10 @@ func TestFilterOptions_matchPattern(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.desc, func(t *testing.T) {
-			result := filter.matchPattern(tt.pattern, tt.path)
+			// 预计算路径信息以匹配新的函数签名
+			baseName := filepath.Base(tt.path)
+			slashPath := filepath.ToSlash(tt.path)
+			result := filter.matchPattern(tt.pattern, tt.path, baseName, slashPath)
 			if result != tt.expected {
 				t.Errorf("模式 '%s' 匹配路径 '%s': 期望 %v，实际 %v",
 					tt.pattern, tt.path, tt.expected, result)
@@ -610,9 +613,14 @@ func BenchmarkFilterOptions_ShouldSkipByParams(b *testing.B) {
 
 func BenchmarkFilterOptions_matchPattern(b *testing.B) {
 	filter := &FilterOptions{}
+	
+	// 预计算路径信息以匹配新的函数签名
+	path := "main.go"
+	baseName := filepath.Base(path)
+	slashPath := filepath.ToSlash(path)
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		filter.matchPattern("*.go", "main.go")
+		filter.matchPattern("*.go", path, baseName, slashPath)
 	}
 }
