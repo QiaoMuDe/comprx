@@ -80,6 +80,124 @@ func UnpackProgress(src string, dst string) error {
 }
 
 // ==============================================
+// 指定内容解压便捷函数 - 线程安全版本
+// ==============================================
+
+// UnpackFile 解压指定文件名 - 线程安全
+//
+// 参数:
+//   - archivePath: 压缩包路径
+//   - fileName: 要解压的文件名
+//   - outputDir: 输出目录路径
+//
+// 返回:
+//   - error: 错误信息
+//
+// 使用示例:
+//
+//	err := UnpackFile("archive.zip", "config.json", "output/")
+func UnpackFile(archivePath string, fileName string, outputDir string) error {
+	// 参数验证
+	if archivePath == "" {
+		return fmt.Errorf("压缩包路径不能为空")
+	}
+	if fileName == "" {
+		return fmt.Errorf("文件名不能为空")
+	}
+	if outputDir == "" {
+		return fmt.Errorf("输出目录不能为空")
+	}
+
+	// 创建过滤器选项
+	opts := DefaultOptions()
+	opts.Filter = types.FilterOptions{
+		Include: []string{fileName},
+		Exclude: []string{},
+		MaxSize: 0,
+		MinSize: 0,
+	}
+
+	return UnpackOptions(archivePath, outputDir, opts)
+}
+
+// UnpackDir 解压指定目录 - 线程安全
+//
+// 参数:
+//   - archivePath: 压缩包路径
+//   - dirName: 要解压的目录名
+//   - outputDir: 输出目录路径
+//
+// 返回:
+//   - error: 错误信息
+//
+// 使用示例:
+//
+//	err := UnpackDir("archive.zip", "src", "output/")
+func UnpackDir(archivePath string, dirName string, outputDir string) error {
+	// 参数验证
+	if archivePath == "" {
+		return fmt.Errorf("压缩包路径不能为空")
+	}
+	if dirName == "" {
+		return fmt.Errorf("目录名不能为空")
+	}
+	if outputDir == "" {
+		return fmt.Errorf("输出目录不能为空")
+	}
+
+	// 创建过滤器选项
+	opts := DefaultOptions()
+	opts.Filter = types.FilterOptions{
+		Include: []string{
+			dirName,        // 匹配目录本身
+			dirName + "/*", // 匹配目录下所有内容
+		},
+		Exclude: []string{},
+		MaxSize: 0,
+		MinSize: 0,
+	}
+
+	return UnpackOptions(archivePath, outputDir, opts)
+}
+
+// UnpackMatch 解压匹配关键字的文件 - 线程安全
+//
+// 参数:
+//   - archivePath: 压缩包路径
+//   - keyword: 匹配关键字
+//   - outputDir: 输出目录路径
+//
+// 返回:
+//   - error: 错误信息
+//
+// 使用示例:
+//
+//	err := UnpackMatch("archive.zip", "test", "output/")
+func UnpackMatch(archivePath string, keyword string, outputDir string) error {
+	// 参数验证
+	if archivePath == "" {
+		return fmt.Errorf("压缩包路径不能为空")
+	}
+	if keyword == "" {
+		return fmt.Errorf("关键字不能为空")
+	}
+	if outputDir == "" {
+		return fmt.Errorf("输出目录不能为空")
+	}
+
+	// 创建过滤器选项
+	opts := DefaultOptions()
+	opts.Filter = types.FilterOptions{
+		Include: []string{"*" + keyword + "*"},
+		Exclude: []string{},
+		MaxSize: 0,
+		MinSize: 0,
+	}
+
+	return UnpackOptions(archivePath, outputDir, opts)
+}
+
+// ==============================================
 // 配置化便捷函数 - 线程安全版本
 // ==============================================
 
