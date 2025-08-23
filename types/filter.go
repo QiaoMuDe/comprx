@@ -36,7 +36,93 @@ type FilterOptions struct {
 	MinSize int64    // 最小文件大小（字节），默认为 0
 }
 
-// ShouldSkipByParams 判断文件是否应该被跳过（通用方法，用于压缩和解压）
+// NewFilterOptions 创建新的过滤器选项
+//
+// 返回:
+//   - *FilterOptions: 新的过滤器选项实例
+func NewFilterOptions() *FilterOptions {
+	return &FilterOptions{}
+}
+
+// WithInclude 设置包含模式
+//
+// 参数:
+//   - patterns: 包含模式列表
+//
+// 返回:
+//   - *FilterOptions: 返回自身，支持链式调用
+func (f *FilterOptions) WithInclude(patterns ...string) *FilterOptions {
+	f.Include = append(f.Include, patterns...)
+	return f
+}
+
+// WithExclude 设置排除模式
+//
+// 参数:
+//   - patterns: 排除模式列表
+//
+// 返回:
+//   - *FilterOptions: 返回自身，支持链式调用
+func (f *FilterOptions) WithExclude(patterns ...string) *FilterOptions {
+	f.Exclude = append(f.Exclude, patterns...)
+	return f
+}
+
+// WithMaxSize 设置最大文件大小限制
+//
+// 参数:
+//   - size: 最大文件大小（字节）
+//
+// 返回:
+//   - *FilterOptions: 返回自身，支持链式调用
+func (f *FilterOptions) WithMaxSize(size int64) *FilterOptions {
+	f.MaxSize = size
+	return f
+}
+
+// WithMinSize 设置最小文件大小限制
+//
+// 参数:
+//   - size: 最小文件大小（字节）
+//
+// 返回:
+//   - *FilterOptions: 返回自身，支持链式调用
+func (f *FilterOptions) WithMinSize(size int64) *FilterOptions {
+	f.MinSize = size
+	return f
+}
+
+// WithSizeRange 设置文件大小范围
+//
+// 参数:
+//   - minSize: 最小文件大小（字节）
+//   - maxSize: 最大文件大小（字节）
+//
+// 返回:
+//   - *FilterOptions: 返回自身，支持链式调用
+func (f *FilterOptions) WithSizeRange(minSize, maxSize int64) *FilterOptions {
+	f.MinSize = minSize
+	f.MaxSize = maxSize
+	return f
+}
+
+// WithIgnoreFile 从忽略文件加载排除模式
+//
+// 参数:
+//   - ignoreFilePath: 忽略文件路径
+//
+// 返回:
+//   - *FilterOptions: 返回自身，支持链式调用
+func (f *FilterOptions) WithIgnoreFile(ignoreFilePath string) *FilterOptions {
+	if ignoreFilePath == "" {
+		return f
+	}
+	patterns := LoadExcludeFromFileOrEmpty(ignoreFilePath)
+	f.Exclude = append(f.Exclude, patterns...)
+	return f
+}
+
+// ShouldSkipByParams 判断文件是否应该被跳过(通用方法，用于压缩和解压)
 //
 // 过滤逻辑:
 //  1. 检查文件大小是否符合要求
@@ -51,19 +137,8 @@ type FilterOptions struct {
 // 返回:
 //   - bool: true 表示应该跳过，false 表示应该处理
 func (f *FilterOptions) ShouldSkipByParams(path string, size int64, isDir bool) bool {
-	// 如果过滤器为空，不跳过任何文件
-	if f == nil {
-		return false
-	}
-
-	// 检查是否有任何过滤条件
-	hasFilter := len(f.Include) > 0 ||
-		len(f.Exclude) > 0 ||
-		f.MinSize > 0 ||
-		f.MaxSize > 0
-
-	// 如果没有过滤条件，不跳过任何文件
-	if !hasFilter {
+	// 如果过滤器为空或没有过滤条件，不跳过任何文件
+	if !HasFilterConditions(f) {
 		return false
 	}
 
