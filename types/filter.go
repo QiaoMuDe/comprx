@@ -321,7 +321,8 @@ func (f *FilterOptions) fastMatch(pattern, slashPath, baseName string) (matched 
 	}
 
 	// 2. 处理精确匹配 (无通配符) - 如 "node_modules", "vendor"
-	if !strings.ContainsAny(normalizedPattern, "*?[]") {
+	// 注意：跳过以 '/' 结尾的模式，这些应该由目录匹配处理
+	if !strings.ContainsAny(normalizedPattern, "*?[]") && normalizedPattern[len(normalizedPattern)-1] != '/' {
 		// 检查文件名精确匹配或路径包含匹配
 		return baseName == normalizedPattern || strings.Contains(slashPath, normalizedPattern), true
 	}
