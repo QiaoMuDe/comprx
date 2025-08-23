@@ -2,7 +2,6 @@ package types
 
 import (
 	"fmt"
-	"os"
 	"path/filepath"
 	"strings"
 )
@@ -11,15 +10,16 @@ import (
 //
 // 用于判断文件是否应该被跳过（不处理）
 type FileFilter interface {
-	// ShouldSkip 判断文件是否应该被跳过
+	// ShouldSkipByParams 判断文件是否应该被跳过
 	//
 	// 参数:
 	//   - path: 文件路径
-	//   - info: 文件信息
+	//   - size: 文件大小（字节）
+	//   - isDir: 是否为目录
 	//
 	// 返回:
 	//   - bool: true 表示应该跳过，false 表示应该处理
-	ShouldSkip(path string, info os.FileInfo) bool
+	ShouldSkipByParams(path string, size int64, isDir bool) bool
 }
 
 // FilterOptions 过滤配置选项
@@ -34,76 +34,6 @@ type FilterOptions struct {
 	Exclude []string // 排除模式，支持 glob 语法，跳过匹配的文件
 	MaxSize int64    // 最大文件大小（字节），0 表示无限制
 	MinSize int64    // 最小文件大小（字节），默认为 0
-}
-
-// NewFilterOptions 创建新的过滤器选项
-//
-// 返回:
-//   - *FilterOptions: 新的过滤器选项实例
-func NewFilterOptions() *FilterOptions {
-	return &FilterOptions{}
-}
-
-// WithInclude 设置包含模式
-//
-// 参数:
-//   - patterns: 包含模式列表
-//
-// 返回:
-//   - *FilterOptions: 返回自身，支持链式调用
-func (f *FilterOptions) WithInclude(patterns ...string) *FilterOptions {
-	f.Include = append(f.Include, patterns...)
-	return f
-}
-
-// WithExclude 设置排除模式
-//
-// 参数:
-//   - patterns: 排除模式列表
-//
-// 返回:
-//   - *FilterOptions: 返回自身，支持链式调用
-func (f *FilterOptions) WithExclude(patterns ...string) *FilterOptions {
-	f.Exclude = append(f.Exclude, patterns...)
-	return f
-}
-
-// WithMaxSize 设置最大文件大小限制
-//
-// 参数:
-//   - size: 最大文件大小（字节）
-//
-// 返回:
-//   - *FilterOptions: 返回自身，支持链式调用
-func (f *FilterOptions) WithMaxSize(size int64) *FilterOptions {
-	f.MaxSize = size
-	return f
-}
-
-// WithMinSize 设置最小文件大小限制
-//
-// 参数:
-//   - size: 最小文件大小（字节）
-//
-// 返回:
-//   - *FilterOptions: 返回自身，支持链式调用
-func (f *FilterOptions) WithMinSize(size int64) *FilterOptions {
-	f.MinSize = size
-	return f
-}
-
-// WithSizeRange 设置文件大小范围
-//
-// 参数:
-//   - minSize: 最小文件大小（字节）
-//   - maxSize: 最大文件大小（字节）
-//
-// 返回:
-//   - *FilterOptions: 返回自身，支持链式调用
-func (f *FilterOptions) WithSizeRange(minSize, maxSize int64) *FilterOptions {
-	f.MinSize = minSize
-	f.MaxSize = maxSize
-	return f
 }
 
 // ShouldSkipByParams 判断文件是否应该被跳过(通用方法，用于压缩和解压)
