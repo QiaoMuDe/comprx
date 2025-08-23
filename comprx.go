@@ -1,3 +1,25 @@
+// Package comprx 提供了一个统一的压缩和解压缩库，支持多种压缩格式。
+//
+// 该包提供了简单易用的 API 来处理 ZIP、TAR、GZIP、BZIP2、ZLIB 和 TGZ 格式的压缩文件。
+// 支持进度条显示、文件过滤、并发安全操作等高级功能。
+//
+// 主要功能：
+//   - 压缩和解压缩多种格式的文件
+//   - 支持进度条显示
+//   - 文件过滤功能
+//   - 线程安全操作
+//   - 灵活的配置选项
+//
+// 基本使用示例：
+//
+//	// 简单压缩
+//	err := comprx.Pack("output.zip", "input_dir")
+//
+//	// 简单解压
+//	err := comprx.Unpack("archive.zip", "output_dir")
+//
+//	// 带进度条的压缩
+//	err := comprx.PackProgress("output.zip", "input_dir")
 package comprx
 
 import (

@@ -1,3 +1,29 @@
+// Package config 提供压缩器的配置管理功能。
+//
+// 该包定义了压缩器的核心配置结构体，包括压缩等级、文件覆盖策略、
+// 进度显示、路径验证和文件过滤等配置选项。提供了配置的创建和
+// 压缩等级转换等实用功能。
+//
+// 主要类型：
+//   - Config: 压缩器配置结构体
+//
+// 主要功能：
+//   - 创建默认配置
+//   - 压缩等级转换
+//   - 进度显示配置
+//   - 文件过滤配置
+//   - 路径验证配置
+//
+// 使用示例：
+//
+//	// 创建默认配置
+//	cfg := config.New()
+//
+//	// 设置压缩等级
+//	cfg.CompressionLevel = types.CompressionLevelBest
+//
+//	// 启用文件覆盖
+//	cfg.OverwriteExisting = true
 package config
 
 import (

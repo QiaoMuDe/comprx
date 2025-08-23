@@ -1,3 +1,36 @@
+// Package utils 提供压缩库使用的通用工具函数。
+//
+// 该包包含了文件系统操作、路径处理、缓冲区管理等实用工具函数。
+// 这些函数被压缩库的各个模块广泛使用，提供了统一的基础功能。
+//
+// 主要功能：
+//   - 文件和目录存在性检查
+//   - 目录创建和确保
+//   - 动态缓冲区大小计算
+//   - 路径安全验证和转换
+//   - 绝对路径处理
+//
+// 安全特性：
+//   - 路径遍历攻击防护
+//   - 绝对路径检测
+//   - UNC路径和协议前缀检测
+//   - Windows特殊路径处理
+//
+// 使用示例：
+//
+//	// 检查文件是否存在
+//	if utils.Exists("file.txt") {
+//	    // 文件存在
+//	}
+//
+//	// 确保目录存在
+//	err := utils.EnsureDir("output/dir")
+//
+//	// 获取动态缓冲区大小
+//	bufSize := utils.GetBufferSize(fileSize)
+//
+//	// 验证路径安全性
+//	safePath, err := utils.ValidatePathSimple(targetDir, filePath, false)
 package utils
 
 import (

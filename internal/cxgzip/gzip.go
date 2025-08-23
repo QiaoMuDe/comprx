@@ -1,3 +1,28 @@
+// Package cxgzip 提供 GZIP 格式的压缩功能实现。
+//
+// 该包实现了 GZIP 格式的单文件压缩操作，支持可配置的压缩等级和进度显示。
+// GZIP 格式只支持单个文件的压缩，不支持目录或多文件压缩。
+//
+// 主要功能：
+//   - GZIP 格式单文件压缩
+//   - 可配置的压缩等级
+//   - 进度显示支持
+//   - 文件元数据保存（文件名、修改时间）
+//   - 文件覆盖控制
+//
+// 限制：
+//   - 只支持单个文件压缩
+//   - 不支持目录压缩
+//   - 不支持多文件打包
+//
+// 使用示例：
+//
+//	// 创建配置
+//	cfg := config.New()
+//	cfg.CompressionLevel = types.CompressionLevelBest
+//
+//	// 压缩单个文件
+//	err := cxgzip.Gzip("output.gz", "input.txt", cfg)
 package cxgzip
 
 import (

@@ -1,3 +1,33 @@
+// Package core 提供压缩包内容列表功能的核心实现。
+//
+// 该文件实现了压缩包内容查看的统一接口，支持多种压缩格式的文件列表功能。
+// 提供了完整列表、限制数量列表和模式匹配列表等功能。
+//
+// 主要功能：
+//   - 列出压缩包内所有文件信息
+//   - 支持限制返回文件数量
+//   - 支持文件名模式匹配过滤
+//   - 自动检测压缩格式
+//   - 统一的错误处理
+//
+// 支持的压缩格式：
+//   - ZIP: .zip
+//   - TAR: .tar
+//   - TGZ: .tgz, .tar.gz
+//   - GZIP: .gz
+//   - BZIP2: .bz2, .bzip2
+//   - ZLIB: .zlib
+//
+// 使用示例：
+//
+//	// 列出所有文件
+//	info, err := core.List("archive.zip")
+//
+//	// 列出前10个文件
+//	info, err := core.ListLimit("archive.zip", 10)
+//
+//	// 列出匹配模式的文件
+//	info, err := core.ListMatch("archive.zip", "*.go")
 package core
 
 import (

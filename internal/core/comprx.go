@@ -1,3 +1,36 @@
+// Package core 提供压缩库的核心功能实现。
+//
+// 该包实现了压缩库的主要业务逻辑，包括压缩和解压缩操作的统一接口。
+// 支持多种压缩格式的自动检测和处理，提供了配置化的压缩解压缩功能。
+//
+// 主要类型：
+//   - Comprx: 压缩器核心结构体
+//
+// 主要功能：
+//   - 统一的压缩和解压缩接口
+//   - 自动压缩格式检测
+//   - 支持多种压缩格式（ZIP、TAR、TGZ、GZIP、BZIP2、ZLIB）
+//   - 配置化的压缩参数
+//   - 文件和目录的智能处理
+//
+// 支持的压缩格式：
+//   - ZIP: .zip
+//   - TAR: .tar
+//   - TGZ: .tgz, .tar.gz
+//   - GZIP: .gz
+//   - BZIP2: .bz2, .bzip2（仅解压）
+//   - ZLIB: .zlib
+//
+// 使用示例：
+//
+//	// 创建压缩器实例
+//	comprx := core.New()
+//
+//	// 压缩文件
+//	err := comprx.Pack("output.zip", "input_dir")
+//
+//	// 解压文件
+//	err := comprx.Unpack("archive.zip", "output_dir")
 package core
 
 import (

@@ -1,3 +1,28 @@
+// Package comprx 提供文件过滤功能，支持从忽略文件加载排除模式。
+//
+// 该文件提供了从忽略文件（如 .gitignore、.comprxignore）加载排除模式的功能。
+// 支持标准的忽略文件格式，包括注释行、空行处理和 glob 模式匹配。
+//
+// 主要功能：
+//   - 从忽略文件加载排除模式
+//   - 支持注释行和空行处理
+//   - 自动去重排除模式
+//   - 支持 glob 模式匹配
+//   - 提供文件不存在时的容错处理
+//
+// 支持的忽略文件格式：
+//   - 每行一个模式
+//   - # 开头的注释行
+//   - 空行自动忽略
+//   - 支持标准 glob 通配符
+//
+// 使用示例：
+//
+//	// 加载忽略文件，文件不存在会报错
+//	patterns, err := comprx.LoadExcludeFromFile(".gitignore")
+//
+//	// 加载忽略文件，文件不存在返回空列表
+//	patterns, err := comprx.LoadExcludeFromFileOrEmpty(".comprxignore")
 package comprx
 
 import (

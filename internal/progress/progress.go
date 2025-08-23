@@ -1,3 +1,37 @@
+// Package progress 提供压缩和解压缩操作的进度显示功能。
+//
+// 该包实现了多种样式的进度显示，包括文本模式和进度条模式。
+// 支持压缩和解压缩过程中的实时进度反馈，提供了统一的进度管理接口。
+//
+// 主要类型：
+//   - Progress: 进度显示器结构体
+//
+// 主要功能：
+//   - 支持多种进度条样式（文本、ASCII、Unicode、默认）
+//   - 提供压缩和解压缩的进度显示
+//   - 支持文件扫描进度显示
+//   - 提供带进度的数据复制功能
+//   - 自动管理进度条生命周期
+//
+// 支持的进度样式：
+//   - 文本模式：显示操作文本信息
+//   - ASCII模式：使用ASCII字符的进度条
+//   - Unicode模式：使用Unicode字符的精美进度条
+//   - 默认模式：使用库默认样式的进度条
+//
+// 使用示例：
+//
+//	// 创建进度显示器
+//	progress := progress.New()
+//
+//	// 开始进度显示
+//	err := progress.Start(totalSize, "archive.zip", "正在解压...")
+//
+//	// 带进度的数据复制
+//	written, err := progress.CopyBuffer(dst, src, buffer)
+//
+//	// 关闭进度显示
+//	err := progress.Close()
 package progress
 
 import (

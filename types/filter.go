@@ -1,3 +1,30 @@
+// Package types 提供文件过滤功能的核心类型和接口定义。
+//
+// 该文件定义了文件过滤器接口和过滤选项结构体，用于在压缩和解压缩过程中
+// 根据文件路径、大小等条件过滤文件。支持 glob 模式匹配、文件大小限制等功能。
+//
+// 主要类型：
+//   - FileFilter: 文件过滤器接口
+//   - FilterOptions: 过滤配置选项结构体
+//
+// 主要功能：
+//   - 支持包含和排除模式的 glob 匹配
+//   - 支持文件大小范围过滤
+//   - 提供高性能的快速匹配算法
+//   - 支持复杂的 glob 模式匹配
+//   - 提供过滤条件验证功能
+//
+// 使用示例：
+//
+//	// 创建过滤选项
+//	filter := &types.FilterOptions{
+//	    Include: []string{"*.go", "*.md"},
+//	    Exclude: []string{"*_test.go"},
+//	    MaxSize: 10 * 1024 * 1024, // 10MB
+//	}
+//
+//	// 检查文件是否应该跳过
+//	shouldSkip := filter.ShouldSkipByParams("main.go", 1024, false)
 package types
 
 import (

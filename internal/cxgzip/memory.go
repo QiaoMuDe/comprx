@@ -1,3 +1,34 @@
+// Package cxgzip 提供 GZIP 格式的内存压缩和流式压缩功能实现。
+//
+// 该包实现了 GZIP 格式的内存中压缩和解压缩操作，以及流式压缩功能。
+// 支持字节数组、字符串和流式数据的压缩与解压缩，提供了高性能的内存管理。
+//
+// 主要功能：
+//   - GZIP 内存压缩：字节数组和字符串的压缩解压
+//   - GZIP 流式压缩：支持 io.Reader 和 io.Writer 接口
+//   - 支持自定义压缩等级
+//   - 优化的内存分配策略
+//   - 完善的错误处理和资源管理
+//
+// 性能优化：
+//   - 预分配缓冲区减少内存重分配
+//   - 智能估算压缩后大小
+//   - 直接字节操作避免额外拷贝
+//   - 自动资源清理防止内存泄漏
+//
+// 使用示例：
+//
+//	// 压缩字节数据
+//	compressed, err := cxgzip.CompressBytes(data, types.CompressionLevelBest)
+//
+//	// 解压字节数据
+//	decompressed, err := cxgzip.DecompressBytes(compressed)
+//
+//	// 压缩字符串
+//	compressed, err := cxgzip.CompressString("hello world", types.CompressionLevelDefault)
+//
+//	// 流式压缩
+//	err := cxgzip.CompressStream(dst, src, types.CompressionLevelFast)
 package cxgzip
 
 import (

@@ -1,3 +1,45 @@
+// Package cxtgz 提供 TGZ (tar.gz) 格式的压缩功能实现。
+//
+// 该包实现了 TGZ 格式的文件和目录压缩操作，TGZ 是 TAR 归档格式与 GZIP 压缩的组合。
+// 支持多种文件类型的处理，包括普通文件、目录、符号链接和特殊文件，提供完整的进度显示和文件过滤功能。
+//
+// 主要功能：
+//   - TGZ 格式文件和目录压缩
+//   - 支持多种文件类型（普通文件、目录、符号链接、特殊文件）
+//   - 可配置的压缩等级
+//   - 进度显示支持
+//   - 文件过滤功能
+//   - 文件覆盖控制
+//   - 相对路径处理
+//
+// 压缩流程：
+//  1. 创建 GZIP 压缩流
+//  2. 在 GZIP 流上创建 TAR 归档流
+//  3. 将文件按 TAR 格式写入并通过 GZIP 压缩
+//
+// 文件类型支持：
+//   - 普通文件：完整内容压缩
+//   - 目录：创建目录条目
+//   - 符号链接：保存链接目标
+//   - 特殊文件：保存文件元数据
+//
+// 路径处理：
+//   - 自动转换为 TAR 标准路径格式（正斜杠）
+//   - 保留目录结构的相对路径
+//   - 支持单文件和目录压缩
+//
+// 使用示例：
+//
+//	// 创建配置
+//	cfg := config.New()
+//	cfg.CompressionLevel = types.CompressionLevelBest
+//	cfg.OverwriteExisting = true
+//
+//	// 压缩目录
+//	err := cxtgz.Tgz("archive.tar.gz", "source_dir", cfg)
+//
+//	// 压缩单个文件
+//	err := cxtgz.Tgz("file.tar.gz", "single_file.txt", cfg)
 package cxtgz
 
 import (

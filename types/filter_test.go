@@ -671,18 +671,18 @@ func TestFilterOptions_PerformanceBoundary(t *testing.T) {
 		for i := 0; i < 1000; i++ {
 			manyPatterns[i] = fmt.Sprintf("*pattern%d*", i)
 		}
-		
+
 		filter := FilterOptions{Include: manyPatterns}
-		
+
 		// 测试大量模式不会导致性能问题
 		start := time.Now()
 		result := filter.ShouldSkipByParams("test.go", 1000, false)
 		duration := time.Since(start)
-		
+
 		if duration > time.Millisecond*100 {
 			t.Errorf("大量包含模式匹配耗时过长: %v", duration)
 		}
-		
+
 		if !result {
 			t.Error("应该跳过不匹配的文件")
 		}
@@ -693,17 +693,17 @@ func TestFilterOptions_PerformanceBoundary(t *testing.T) {
 		for i := 0; i < 500; i++ {
 			manyPatterns[i] = fmt.Sprintf("*exclude%d*", i)
 		}
-		
+
 		filter := FilterOptions{Exclude: manyPatterns}
-		
+
 		start := time.Now()
 		result := filter.ShouldSkipByParams("normal.go", 1000, false)
 		duration := time.Since(start)
-		
+
 		if duration > time.Millisecond*50 {
 			t.Errorf("大量排除模式匹配耗时过长: %v", duration)
 		}
-		
+
 		if result {
 			t.Error("不应该跳过不匹配排除模式的文件")
 		}
@@ -712,17 +712,17 @@ func TestFilterOptions_PerformanceBoundary(t *testing.T) {
 	t.Run("超长路径", func(t *testing.T) {
 		// 创建超长路径
 		longPath := strings.Repeat("verylongdirectoryname/", 100) + "file.go"
-		
+
 		filter := FilterOptions{Include: []string{"*.go"}}
-		
+
 		start := time.Now()
 		result := filter.ShouldSkipByParams(longPath, 1000, false)
 		duration := time.Since(start)
-		
+
 		if duration > time.Millisecond*10 {
 			t.Errorf("超长路径匹配耗时过长: %v", duration)
 		}
-		
+
 		if result {
 			t.Error("不应该跳过匹配的.go文件")
 		}
@@ -922,7 +922,7 @@ func TestFilterOptions_ConcurrentSafety(t *testing.T) {
 		wg.Add(1)
 		go func(id int) {
 			defer wg.Done()
-			
+
 			for j := 0; j < numOperations; j++ {
 				// 测试不同类型的文件路径
 				testPaths := []string{
@@ -932,7 +932,7 @@ func TestFilterOptions_ConcurrentSafety(t *testing.T) {
 					fmt.Sprintf("README%d.md", id),
 					fmt.Sprintf("config%d.json", j),
 				}
-				
+
 				for _, path := range testPaths {
 					result := filter.ShouldSkipByParams(path, int64(1000+j), false)
 					_ = result // 使用结果避免编译器优化

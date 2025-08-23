@@ -1,3 +1,22 @@
+// Package comprx 提供内存中的压缩和解压缩功能。
+//
+// 该文件提供了 GZIP 和 ZLIB 格式的内存压缩和流式压缩功能。
+// 支持字节数组、字符串和流式数据的压缩与解压缩操作。
+//
+// 主要功能：
+//   - GZIP 内存压缩：字节数组和字符串的压缩解压
+//   - GZIP 流式压缩：支持 io.Reader 和 io.Writer 接口
+//   - ZLIB 内存压缩：字节数组和字符串的压缩解压
+//   - ZLIB 流式压缩：支持 io.Reader 和 io.Writer 接口
+//   - 支持自定义压缩等级
+//
+// 使用示例：
+//
+//	// GZIP 压缩字符串
+//	compressed, err := comprx.GzipString("hello world")
+//
+//	// ZLIB 解压字节数据
+//	decompressed, err := comprx.UnzlibBytes(compressedData)
 package comprx
 
 import (

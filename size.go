@@ -1,3 +1,21 @@
+// Package comprx 提供文件和目录大小计算功能。
+//
+// 该文件提供了计算文件或目录大小的实用函数。
+// 支持单个文件大小获取和目录递归大小计算，提供安全和详细两种版本。
+//
+// 主要功能：
+//   - 获取单个文件的大小
+//   - 递归计算目录的总大小
+//   - 提供安全版本（出错返回0）和详细版本（返回错误信息）
+//   - 自动忽略符号链接等特殊文件
+//
+// 使用示例：
+//
+//	// 安全版本，出错时返回0
+//	size := comprx.GetSizeOrZero("./mydir")
+//
+//	// 详细版本，返回错误信息
+//	size, err := comprx.GetSize("./myfile.txt")
 package comprx
 
 import "gitee.com/MM-Q/comprx/internal/utils"
