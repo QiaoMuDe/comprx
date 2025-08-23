@@ -432,10 +432,13 @@ func (f *FilterOptions) complexMatch(normalizedPattern, path, baseName, slashPat
 	}
 
 	// 4. 处理路径中包含模式的情况
-	pathParts := strings.Split(slashPath, "/") // 分割标准化路径
-	for _, part := range pathParts {
-		if matched, err := filepath.Match(normalizedPattern, part); err == nil && matched {
-			return true
+	// 优化：避免不必要的分割，先检查模式复杂度
+	if strings.ContainsAny(normalizedPattern, "*?[]") {
+		pathParts := strings.Split(slashPath, "/") // 分割标准化路径
+		for _, part := range pathParts {
+			if matched, err := filepath.Match(normalizedPattern, part); err == nil && matched {
+				return true
+			}
 		}
 	}
 
