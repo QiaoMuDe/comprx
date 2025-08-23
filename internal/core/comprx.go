@@ -5,7 +5,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"gitee.com/MM-Q/comprx/config"
+	"gitee.com/MM-Q/comprx/internal/config"
 	"gitee.com/MM-Q/comprx/internal/cxbzip2"
 	"gitee.com/MM-Q/comprx/internal/cxgzip"
 	"gitee.com/MM-Q/comprx/internal/cxtar"

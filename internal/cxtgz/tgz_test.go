@@ -7,7 +7,7 @@ import (
 	"strings"
 	"testing"
 
-	"gitee.com/MM-Q/comprx/config"
+	"gitee.com/MM-Q/comprx/internal/config"
 	"gitee.com/MM-Q/comprx/types"
 )
 

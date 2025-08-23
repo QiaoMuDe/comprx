@@ -6,7 +6,7 @@ import (
 	"path/filepath"
 	"testing"
 
-	"gitee.com/MM-Q/comprx/config"
+	"gitee.com/MM-Q/comprx/internal/config"
 )
 
 func TestUngzip_Success(t *testing.T) {
