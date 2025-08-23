@@ -7,14 +7,16 @@ ComprX 是一个功能强大、易于使用的 Go 语言压缩解压缩库，支
 
 ## ✨ 特性
 
-- 🗜️ **多格式支持**: ZIP、TAR、TGZ、TAR.GZ、GZ、BZ2/BZIP2
+- 🗜️ **多格式支持**: ZIP、TAR、TGZ、TAR.GZ、GZIP、ZLIB、BZ2/BZIP2
 - 🔒 **线程安全**: 所有操作都是线程安全的
 - 📊 **进度显示**: 支持多种样式的进度条（文本、Unicode、ASCII、默认）
 - 🎛️ **灵活配置**: 支持压缩级别、覆盖设置等多种配置选项
 - 🔍 **智能过滤**: 支持文件包含/排除模式、大小过滤，压缩和解压都支持
-- 💾 **内存操作**: 支持字节数据和字符串的内存压缩/解压
-- 🌊 **流式处理**: 支持流式压缩和解压缩
+- 💾 **内存操作**: 支持 GZIP 和 ZLIB 的字节数据和字符串内存压缩/解压
+- 🌊 **流式处理**: 支持 GZIP 和 ZLIB 的流式压缩和解压缩
 - 📝 **简单易用**: 提供简洁的 API 接口和链式配置
+- 📋 **文件列表**: 支持查看压缩包内容，支持模式匹配和数量限制
+- 🎯 **忽略文件**: 支持从 .gitignore 等文件加载排除模式，自动去重和优化
 
 ## 📦 安装
 
@@ -400,10 +402,14 @@ go test ./internal/cxzip/
 go test ./internal/cxtar/
 go test ./internal/cxtgz/
 go test ./internal/cxgzip/
+go test ./internal/cxzlib/
 go test ./internal/cxbzip2/
 
 # 测试过滤器功能
 go test ./types/ -v
+
+# 测试忽略文件加载功能
+go test -v -run TestLoadExcludeFromFile
 
 # 测试并发安全性
 go test -run TestConcurrent
@@ -415,8 +421,13 @@ go test -run TestConcurrent
 # 过滤器性能测试
 go test ./types/ -bench=BenchmarkFilter
 
+# 忽略文件加载性能测试
+go test -bench=BenchmarkLoadExcludeFromFile
+
 # 压缩性能测试
 go test ./internal/cxzip/ -bench=.
+go test ./internal/cxgzip/ -bench=.
+go test ./internal/cxzlib/ -bench=.
 ```
 
 ## 📊 性能特点
