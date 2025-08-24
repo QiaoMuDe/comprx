@@ -237,26 +237,6 @@ func (cl CompressionLevel) String() string
 
 - **描述**: 返回压缩等级的字符串表示
 
-### FileFilter
-
-```go
-type FileFilter interface {
-    // ShouldSkipByParams 判断文件是否应该被跳过
-    //
-    // 参数:
-    //   - path: 文件路径
-    //   - size: 文件大小（字节）
-    //   - isDir: 是否为目录
-    //
-    // 返回:
-    //   - bool: true 表示应该跳过，false 表示应该处理
-    ShouldSkipByParams(path string, size int64, isDir bool) bool
-}
-```
-
-- **描述**: 文件过滤器接口
-- **用于判断文件是否应该被跳过（不处理）**
-
 ### FileInfo
 
 ```go
